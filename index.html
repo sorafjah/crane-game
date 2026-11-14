@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&text=%E3%82%AF%E3%83%AC%E3%83%BC%E3%83%B3%E3%82%B2%E3%83%A0&display=swap" rel="stylesheet">
 <style>
 :root{
   --ink:#4a4458; --ink-soft:#7d7690; --paper:#fffdf8; --line:#eadff2;
@@ -80,6 +81,14 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;touch-action
 .mbtn strong{font-size:26px}
 .mbtn span{font-size:14px;line-height:1.8;color:var(--ink-soft);white-space:nowrap}
 .mbtn:active{transform:translateY(3px)}
+.setrows{display:grid;gap:10px;margin-bottom:16px}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:3px solid var(--line);border-radius:18px;padding:6px 10px 6px 16px;font-size:19px;line-height:1.9;text-align:left}
+.setlab b{display:inline-block;border-radius:999px;padding:0 10px;font-size:15px;margin-right:4px}
+.tagE{background:#effbf6;border:2px solid var(--mint)}.tagN{background:#eff7ff;border:2px solid var(--sky)}.tagH{background:#fff1f5;border:2px solid var(--pink)}
+.stepper{display:flex;align-items:center;gap:6px}
+.sb{width:52px;height:52px;border-radius:14px;background:var(--paper);border:3px solid var(--lav);font-size:20px;box-shadow:0 3px 0 #b6a5e6}
+.sb:active{transform:translateY(2px);box-shadow:0 1px 0 #b6a5e6}
+.sv{min-width:92px;text-align:center;font-size:22px;font-weight:700;color:var(--pink-deep)}
 .mbtn.e{border-color:var(--mint);background:#effbf6;box-shadow:0 6px 0 var(--mint)}
 .mbtn.n{border-color:var(--sky);background:#eff7ff;box-shadow:0 6px 0 var(--sky)}
 .mbtn.h{border-color:var(--pink);background:#fff1f5;box-shadow:0 6px 0 var(--pink)}
@@ -132,7 +141,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;touch-action
 </script>
 </head>
 <body>
-<!-- build: 2026-11-14j -->
+<!-- build: 2026-11-14k -->
 <canvas id="c"></canvas>
 
 <div id="hud">
@@ -167,10 +176,22 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;touch-action
   <h1>クレーンゲーム</h1>
   <p class="lead">むずかしさを えらんでね</p>
   <div class="modes">
-    <button class="mbtn e" data-mode="easy"><strong>やさしい</strong><span>スティックで うごかす<br><ruby>何回<rt>なんかい</rt></ruby>でも できる</span></button>
-    <button class="mbtn n" data-mode="normal"><strong>ふつう</strong><span>やじるしボタンで うごかす<br>10<ruby>回<rt>かい</rt></ruby>・30<ruby>秒<rt>びょう</rt></ruby>ずつ</span></button>
-    <button class="mbtn h" data-mode="hard"><strong>ホンモノモード</strong><span>ほんものみたいに ゆれる<br>ボタン1<ruby>回<rt>かい</rt></ruby>ずつ・コイン6まい</span></button>
+    <button class="mbtn e" data-mode="easy"><strong>やさしい</strong><span id="mdE"></span></button>
+    <button class="mbtn n" data-mode="normal"><strong>ふつう</strong><span id="mdN"></span></button>
+    <button class="mbtn h" data-mode="hard"><strong>ホンモノモード</strong><span id="mdH"></span></button>
   </div>
+  <button class="big alt" id="bSet" style="margin-top:16px">⚙ せってい</button>
+</div></div>
+
+<div class="ov" id="ovSet"><div class="card scroll">
+  <h2>せってい</h2>
+  <div class="setrows">
+    <div class="setrow"><div class="setlab"><b class="tagE">やさしい</b> ゲームの <ruby>時間<rt>じかん</rt></ruby></div><div class="stepper" data-opt="easyTime"><button class="sb">◀</button><span class="sv"></span><button class="sb">▶</button></div></div>
+    <div class="setrow"><div class="setlab"><b class="tagN">ふつう</b> <ruby>回数<rt>かいすう</rt></ruby></div><div class="stepper" data-opt="normalPlays"><button class="sb">◀</button><span class="sv"></span><button class="sb">▶</button></div></div>
+    <div class="setrow"><div class="setlab"><b class="tagN">ふつう</b> 1<ruby>回<rt>かい</rt></ruby>の <ruby>時間<rt>じかん</rt></ruby></div><div class="stepper" data-opt="normalTime"><button class="sb">◀</button><span class="sv"></span><button class="sb">▶</button></div></div>
+    <div class="setrow"><div class="setlab"><b class="tagH">ホンモノ</b> コインの <ruby>数<rt>かず</rt></ruby></div><div class="stepper" data-opt="hardCoins"><button class="sb">◀</button><span class="sv"></span><button class="sb">▶</button></div></div>
+  </div>
+  <button class="big" id="bSetOk">OK</button>
 </div></div>
 
 <div class="ov" id="ovHelp"><div class="card scroll">
@@ -197,7 +218,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
    調整値（ここの数字だけ直せば、速さ・むずかしさを変えられます）
    ===================================================================== */
 const CFG = {
-  version: 'v2026-11-14j',
+  version: 'v2026-11-14k',
   field: { W: 6.0, D: 4.6 },          // 台の中の広さ（横・奥）
   hole:  { w: 1.7, d: 1.7 },          // 落とし口（手前の左すみ）
   gravity: 14,
@@ -214,7 +235,14 @@ const CFG = {
   /* すべり落ち：つかんだ瞬間に「落ちるかどうか」と「いつ落ちるか」を決める（本物でよく落ちる場面だけで落とす）
      line＝これより力が弱いと落ちる／top・start・travel＝落ちる場面の割合（上がりきってガクンとゆれたとき・横に動き出したとき・移動中）
      safe＝穴の中心からこれ以上はなれた所でだけ落とす／topPause＝上がりきってから横に動き出すまでの秒数 */
-  slip: { line: 1.0, top: 0.4, start: 0.35, travel: 0.25, safe: 1.9, topPause: 0.35, jolt: 0.22 },                          // アームのゆれ（ふりこ）
+  // メニューの「せってい」でえらべる値（0は「なし」）
+  options: {
+    easyTime:    { mode: 'easy',   key: 'gameTime',  list: [30, 60, 90, 120, 180, 0] },
+    normalPlays: { mode: 'normal', key: 'plays',     list: [3, 5, 10, 15, 20] },
+    normalTime:  { mode: 'normal', key: 'timeLimit', list: [0, 15, 30, 60] },
+    hardCoins:   { mode: 'hard',   key: 'plays',     list: [3, 6, 10, 15] },
+  },
+  slip: { line: 1.0, top: 0.4, start: 0.35, travel: 0.25, safe: 1.9, topPause: 0.45, jolt: 0.22, loosenT: 0.32 },   // loosenT＝ゆるんでから落ちるまでの秒数                          // アームのゆれ（ふりこ）
   originalColorRate: 0.25,
   prizeAngDamp: 0.15,      // 景品の回転のしにくさ（小さいほど、ツメが当たったときに倒れやすい）
   pressTime: 0.3,          // ツメが景品の上に乗ってから、おしこみ続ける秒数（この間に景品が倒れたりずれたりする）                                   // キャラが元の色で出る割合
@@ -222,7 +250,7 @@ const CFG = {
   out: { wait: 0.9, roll: 1.1, slide: 0.8 },   // 取れた景品：穴に落ちてから出てくるまで／ころがる時間／ならぶ時間（秒）
   modes: {
     easy: {
-      name: 'やさしい', control: 'stick', fingers: 3, plays: Infinity, timeLimit: 0,
+      name: 'やさしい', control: 'stick', fingers: 3, plays: Infinity, timeLimit: 0, gameTime: 60,   // gameTime＝ゲーム全体の時間（秒）
       speed: 1.7,                      // クレーンが横・奥に動く速さ
       accel: 30, decel: 40,            // 動き出し・止まりの鋭さ（大きいほどピタッと止まる）
       swayGain: 0.03, topKick: 0.04,   // ゆれの大きさ
@@ -236,7 +264,7 @@ const CFG = {
       prizes: ['cube', 'chick', 'panda', 'rabbit', 'cat', 'car', 'pudding', 'egg', 'bear', 'penguin', 'donut'],
     },
     normal: {
-      name: 'ふつう', control: 'dpad', fingers: 3, plays: 10, timeLimit: 30,
+      name: 'ふつう', control: 'dpad', fingers: 3, plays: 5, timeLimit: 30, gameTime: 0,          // timeLimit＝1回ごとの時間（秒）
       speed: 1.6, accel: 20, decel: 22, swayGain: 0.08, topKick: 0.08,
       grabR: 0.5, sLift: 2.0, sTop: 1.2, strRand: [0.65, 1.15], weakenT: 0.4,
       guide: 'none', fence: 0.10, nudge: 1.2, orient: false, comStrict: false, easeTop: true, fingerHit: true,
@@ -245,7 +273,7 @@ const CFG = {
       prizes: ['chick', 'panda', 'cat', 'dog', 'ball', 'rabbit', 'egg', 'cube', 'car', 'pudding', 'bear', 'penguin', 'donut'],
     },
     hard: {
-      name: 'ホンモノ', control: 'two', fingers: 2, plays: 6, timeLimit: 0,
+      name: 'ホンモノ', control: 'two', fingers: 2, plays: 6, timeLimit: 0, gameTime: 0,
       speed: 1.1, accel: 10, decel: 3.5, swayGain: 0.2, topKick: 0.16,
       grabR: 0.48, sLift: 2.0, sTop: 1.35, strRand: [0.82, 1.1], weakenT: 0.5,
       pity: 0.08,                      // 取れないたびに少しずつアームが強くなる（本物の「確率機」のしくみ）。取れたら元にもどる
@@ -639,7 +667,8 @@ staticBox(0, 1.5, -D / 2 - 0.5, W / 2 + 1, 4.5, 0.5); staticBox(0, 1.5, D / 2 + 
 const cab = new THREE.Group(); scene.add(cab);
 const fenceGroup = new THREE.Group(); cab.add(fenceGroup);
 let fenceBodies = [];
-const marquee = { tex: null };
+const marquee = { tex: null }, bulbs = [];
+const BULB_ON = [new THREE.Color(0xfff6b0), new THREE.Color(0xffc2dd), new THREE.Color(0xbfe6ff)], BULB_OFF = new THREE.Color(0xd9cde6);
 (function buildCabinet() {
   const baseM = mat(0xffc9d9, { roughness: 0.6 }), trimM = mat(0xffffff, { roughness: 0.5 }), postM = mat(0xcdbcf8, { roughness: 0.5 });
   // 土台（穴の部分だけあけてある）
@@ -662,26 +691,42 @@ const marquee = { tex: null };
   // 穴の中：上は明るく、下にいくほど少しこい色（真っ黒にはしない）
   const shaftTex = canvasTex(64, 256, (c, w, h) => {
     const g = c.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, '#ffe3ee'); g.addColorStop(0.45, '#e2c9f2'); g.addColorStop(1, '#a990d6');
+    g.addColorStop(0, '#ffe0ec'); g.addColorStop(0.35, '#d9b8f0'); g.addColorStop(0.75, '#9a7bd0'); g.addColorStop(1, '#6a52a3');
     c.fillStyle = g; c.fillRect(0, 0, w, h);
   });
-  const shaftM = new THREE.MeshBasicMaterial({ map: shaftTex, side: THREE.DoubleSide });
-  const SH = 1.6, sy = -SH / 2 - 0.01;
-  put(cab, new THREE.Mesh(new THREE.PlaneGeometry(CFG.hole.d, SH), shaftM), [HX1 - 0.005, sy, HOME.z], [0, -Math.PI / 2, 0]);
-  put(cab, new THREE.Mesh(new THREE.PlaneGeometry(CFG.hole.d, SH), shaftM), [-W / 2 + 0.005, sy, HOME.z], [0, Math.PI / 2, 0]);
-  put(cab, new THREE.Mesh(new THREE.PlaneGeometry(CFG.hole.w, SH), shaftM), [HOME.x, sy, HZ1 + 0.005]);
-  put(cab, new THREE.Mesh(new THREE.PlaneGeometry(CFG.hole.w, SH), shaftM), [HOME.x, sy, D / 2 - 0.005], [0, Math.PI, 0]);
-  const holeBottom = new THREE.Mesh(new THREE.PlaneGeometry(CFG.hole.w, CFG.hole.d), new THREE.MeshBasicMaterial({ color: 0x9a82cc }));
+  // 4つのかべが下にすぼまる「ろうと」形。光の当たり方で かべごとに明るさがちがって見える
+  const SH = 1.6, hw = CFG.hole.w / 2, bw = hw * 0.72;
+  // かべ4まいを台形で作り、かべごとに明るさを変える（奥のかべがいちばん明るく、手前のかべがいちばん暗い）
+  const wall = (pts, shade) => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pts.flat(), 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 1, 1, 0, 0, 0], 2));
+    g.setIndex([0, 1, 2, 0, 2, 3]);
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: shaftTex, color: new THREE.Color(shade, shade, shade), side: THREE.DoubleSide }));
+    m.position.set(HOME.x, 0, HOME.z); cab.add(m);
+  };
+  const T = -0.005, B = -SH;
+  wall([[-hw, T, -hw], [hw, T, -hw], [bw, B, -bw], [-bw, B, -bw]], 1.0);    // 奥
+  wall([[-hw, T, hw], [-hw, T, -hw], [-bw, B, -bw], [-bw, B, bw]], 0.86);   // 左
+  wall([[hw, T, -hw], [hw, T, hw], [bw, B, bw], [bw, B, -bw]], 0.72);       // 右
+  wall([[hw, T, hw], [-hw, T, hw], [-bw, B, bw], [bw, B, bw]], 0.6);        // 手前
+  // ふちのすぐ内がわの、うす暗い帯（穴のふかさが出る）
+  const lipTex = canvasTex(8, 64, (c, w, h) => { const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(60,30,90,0.45)'); g.addColorStop(1, 'rgba(60,30,90,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h); });
+  const lip = new THREE.Mesh(new THREE.CylinderGeometry(hw * Math.SQRT2 - 0.01, (hw - 0.07) * Math.SQRT2, 0.4, 4, 1, true), new THREE.MeshBasicMaterial({ map: lipTex, transparent: true, side: THREE.BackSide, depthWrite: false }));
+  lip.rotation.y = Math.PI / 4; lip.position.set(HOME.x, -0.21, HOME.z); cab.add(lip);
+  const holeBottom = new THREE.Mesh(new THREE.PlaneGeometry(bw * 2, bw * 2), new THREE.MeshStandardMaterial({ color: 0x5e4896, roughness: 1 }));
   holeBottom.rotation.x = -Math.PI / 2; holeBottom.position.set(HOME.x, -SH, HOME.z); cab.add(holeBottom);
   const arrowTex = canvasTex(128, 128, (c, w, h) => {
     c.fillStyle = 'rgba(255,255,255,0.55)'; c.beginPath(); c.moveTo(w / 2, h * 0.85); c.lineTo(w * 0.2, h * 0.45); c.lineTo(w * 0.38, h * 0.45);
     c.lineTo(w * 0.38, h * 0.12); c.lineTo(w * 0.62, h * 0.12); c.lineTo(w * 0.62, h * 0.45); c.lineTo(w * 0.8, h * 0.45); c.closePath(); c.fill();
   });
-  const arrow = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), new THREE.MeshBasicMaterial({ map: arrowTex, transparent: true }));
+  const arrow = new THREE.Mesh(new THREE.PlaneGeometry(0.75, 0.75), new THREE.MeshBasicMaterial({ map: arrowTex, transparent: true }));
   arrow.rotation.x = -Math.PI / 2; arrow.position.set(HOME.x, -SH + 0.01, HOME.z); cab.add(arrow);
   const rim = mat(0xff86a8, { roughness: 0.5 });
   put(cab, box(0.06, 0.03, CFG.hole.d, rim), [HX1, 0.012, HOME.z]);
   put(cab, box(CFG.hole.w, 0.03, 0.06, rim), [HOME.x, 0.012, HZ1]);
+  put(cab, box(0.06, 0.03, CFG.hole.d, rim), [-W / 2 + 0.03, 0.012, HOME.z]);     // 左と手前のふちも
+  put(cab, box(CFG.hole.w, 0.03, 0.06, rim), [HOME.x, 0.012, D / 2 - 0.03]);
   // うしろ・左のパネル
   const panelTex = canvasTex(512, 256, (c, w, h) => {
     const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#eaf6ff'); g.addColorStop(1, '#fff1f7'); c.fillStyle = g; c.fillRect(0, 0, w, h);
@@ -701,6 +746,14 @@ const marquee = { tex: null };
   put(cab, new THREE.Mesh(new THREE.PlaneGeometry(W + 0.1, 0.7), new THREE.MeshBasicMaterial({ map: marquee.tex })), [0, 4.75, D / 2 + 0.26]);
   put(cab, new THREE.Mesh(new THREE.PlaneGeometry(D + 0.1, 0.7), new THREE.MeshBasicMaterial({ map: marquee.tex })), [W / 2 + 0.26, 4.75, 0], [0, Math.PI / 2, 0]);
   put(cab, new THREE.Mesh(new THREE.PlaneGeometry(D + 0.1, 0.7), new THREE.MeshBasicMaterial({ map: marquee.tex })), [-W / 2 - 0.26, 4.75, 0], [0, -Math.PI / 2, 0]);
+  // 看板の上下にならぶ電球（順番に光る）
+  const bulbGeo = new THREE.SphereGeometry(0.05, 10, 8);
+  const addBulbs = (n, len, place) => { for (let i = 0; i < n; i++) for (const yy of [5.17, 4.33]) {
+    const m = new THREE.Mesh(bulbGeo, new THREE.MeshBasicMaterial({ color: 0xffffff })); place(m, -len / 2 + (i + 0.5) * len / n, yy); cab.add(m); bulbs.push(m);
+  } };
+  addBulbs(22, W + 0.3, (m, a, y) => m.position.set(a, y, D / 2 + 0.29));
+  addBulbs(16, D + 0.3, (m, a, y) => m.position.set(W / 2 + 0.29, y, a));
+  addBulbs(16, D + 0.3, (m, a, y) => m.position.set(-W / 2 - 0.29, y, a));
   // レール
   const railM = mat(0xe9e4f2, { metalness: 0.4, roughness: 0.4 });
   put(cab, box(0.1, 0.1, D, railM), [-W / 2 + 0.1, CFG.claw.railY + 0.1, 0]);
@@ -716,16 +769,36 @@ const marquee = { tex: null };
   put(cab, box(W + 0.5, 0.2, 0.08, baseM), [0, -0.95, D / 2 + 2.0]);
 })();
 function drawMarquee() {
+  // ポップな看板：キャンディのしましま＋1文字ずつちがう色・ちがう角度の、ふちどり文字
   const cv = marquee.tex.image, c = cv.getContext('2d'), w = cv.width, h = cv.height;
-  const g = c.createLinearGradient(0, 0, w, 0); g.addColorStop(0, '#ff9dbb'); g.addColorStop(0.5, '#ffc48a'); g.addColorStop(1, '#9fd4ff');
-  c.fillStyle = g; c.fillRect(0, 0, w, h);
-  c.font = '700 96px "BIZ UDPGothic", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.lineWidth = 14; c.strokeStyle = '#ffffff'; c.strokeText('★ クレーンゲーム ★', w / 2, h / 2 + 4);
-  c.fillStyle = '#f0608a'; c.fillText('★ クレーンゲーム ★', w / 2, h / 2 + 4);
+  c.fillStyle = '#ffe3ef'; c.fillRect(0, 0, w, h);
+  c.save(); c.globalAlpha = 0.55; c.fillStyle = '#ffffff';
+  for (let x = -h; x < w + h; x += 56) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x + 28, 0); c.lineTo(x + 28 - h, h); c.lineTo(x - h, h); c.closePath(); c.fill(); }
+  c.restore();
+  const dots = ['#ffd84d', '#8fdfc0', '#8ecbff', '#cdbcf8', '#ffb3c7'];
+  for (let i = 0; i < 26; i++) { c.fillStyle = dots[i % 5]; c.beginPath(); c.arc((i * 151 + 30) % w, (i * 37 + 18) % h, 6 + (i % 3) * 3, 0, 7); c.fill(); }
+  const text = 'クレーンゲーム', cols = ['#ff6f9f', '#ff9a3d', '#ffc61a', '#45c98a', '#3fa9f5', '#9a7bf0', '#ff6fb8'];
+  const font = (document.fonts && document.fonts.check('80px "Mochiy Pop One"')) ? '"Mochiy Pop One"' : '"BIZ UDPGothic"';
+  c.font = `${font === '"BIZ UDPGothic"' ? '700 ' : ''}104px ${font}, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  const ws = [...text].map(ch => c.measureText(ch).width * 0.98), total = ws.reduce((a, b) => a + b, 0);
+  let x = w / 2 - total / 2;
+  [...text].forEach((ch, i) => {
+    const cx = x + ws[i] / 2, cy = h / 2 + 6 + (i % 2 ? -7 : 7), rot = (i % 2 ? 0.08 : -0.08);
+    c.save(); c.translate(cx, cy); c.rotate(rot);
+    c.lineJoin = 'round';
+    c.fillStyle = 'rgba(120,60,110,0.28)'; c.fillText(ch, 5, 7);                            // かげ
+    c.lineWidth = 22; c.strokeStyle = '#ffffff'; c.strokeText(ch, 0, 0);                   // 白いふち
+    c.lineWidth = 7; c.strokeStyle = '#7a4a8c'; c.strokeText(ch, 0, 0);                    // こいふち
+    c.fillStyle = cols[i % cols.length]; c.fillText(ch, 0, 0);
+    c.fillStyle = 'rgba(255,255,255,0.45)'; c.beginPath(); c.ellipse(-ws[i] * 0.18, -26, 12, 7, -0.5, 0, 7); c.fill();   // つや
+    c.restore(); x += ws[i];
+  });
+  const star = (sx, sy, r, col) => { c.fillStyle = col; c.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r; c.lineTo(sx + Math.cos(a) * rr, sy + Math.sin(a) * rr); } c.fill(); c.lineWidth = 4; c.strokeStyle = '#ffffff'; c.stroke(); };
+  star(w / 2 - total / 2 - 60, h / 2, 34, '#ffc61a'); star(w / 2 + total / 2 + 60, h / 2, 34, '#ffc61a');
   marquee.tex.needsUpdate = true;
 }
 drawMarquee();
-if (document.fonts && document.fonts.load) document.fonts.load('700 96px "BIZ UDPGothic"').then(drawMarquee).catch(() => {});
+if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('80px "Mochiy Pop One"', 'クレーンゲーム'), document.fonts.load('700 96px "BIZ UDPGothic"')]).then(drawMarquee).catch(() => {});
 
 function buildFence(h) {
   for (const b of fenceBodies) world.removeBody(b); fenceBodies = [];
@@ -916,6 +989,7 @@ function startGame(mode) {
   G.mode = mode; G.M = CFG.modes[mode];
   G.plays = G.M.plays; G.miss = 0; G.phase = 'ready'; G.hs = 0; G.t = 0; G.pt = 0; G.blocked = false; G.overT = 0;
   G.timeLeft = G.M.timeLimit; G.timerOn = false;
+  G.gameLeft = G.M.gameTime || 0; G.timeUp = false;
   Object.assign(claw, { cx: HOME.x, cz: HOME.z, vx: 0, vz: 0, y: CFG.claw.topY, vy: 0, sx: 0, sz: 0, svx: 0, svz: 0, angle: CFG.claw.openA, angleT: CFG.claw.openA, hold: null });
   buildClaw(G.M.fingers); buildFence(G.M.fence); setClawMask(true);
   seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
@@ -1018,15 +1092,25 @@ function slipCheck() {
   const h = claw.hold; if (!h || !h.plan || G.phase !== 'return') return;
   const S = CFG.slip, pl = h.plan, dist = Math.hypot(HOME.x - claw.cx, HOME.z - claw.cz);
   let when = pl.when;
-  if (when !== 'top' && h.d0 < S.safe + 0.2) when = 'top';                  // 穴のすぐ近くでつかんだときは、上がりきったところで落とす
+  if (when !== 'top' && h.d0 < S.safe + 0.7) when = 'top';                  // 穴のすぐ近くでつかんだときは、上がりきったところで落とす
   let go = false;
-  if (when === 'top') go = G.topT >= 0.12 + pl.d * 0.5;
+  if (when === 'top') go = G.topT >= 0.05 + pl.d * 0.3;
   else if (when === 'start') go = G.topT >= S.topPause + pl.d;
   else { const travel = h.d0 - dist; go = travel >= pl.f * (h.d0 - S.safe) && G.topT >= S.topPause; }
-  if (go && (dist > S.safe || when === 'top')) {
-    const v = h.p.body.velocity;
-    releaseHold(true);
-    if (when === 'start') { v.x = -claw.vx * 0.3; v.z = -claw.vz * 0.3; }   // 動き出しで取り残されるように、少し後ろへ
+  if (h.loosen > 0) {                                     // ゆるみ中：時間がきたら落とす
+    h.loosen -= STEP;
+    if (h.loosen <= 0) {
+      const v = h.p.body.velocity;
+      releaseHold(true);
+      if (when === 'start') { v.x = -claw.vx * 0.3; v.z = -claw.vz * 0.3; }   // 動き出しで取り残されるように、少し後ろへ
+    }
+    return;
+  }
+  if (go && (dist > S.safe + 0.5 || when === 'top')) {
+    // 落ちる理由を見せる：ガタン！とアームがゆれて、ツメが少しゆるみ、景品がずり下がってから落ちる
+    h.loosen = S.loosenT; claw.rattle = S.loosenT + 0.15; sfx('gatan');
+    const a = rnd() * 6.283, k = when === 'top' ? 0.12 : 0.2;
+    claw.svx += Math.cos(a) * k; claw.svz += Math.sin(a) * k;
   }
 }
 function applyHold() {
@@ -1041,7 +1125,7 @@ function applyHold() {
   let fy = H.k * ey - H.c * (b.velocity.y - claw.vy);
   let fz = H.k * ez - H.c * (b.velocity.z - (claw.vz + claw.svz));
   // 落ちるかどうかは つかんだときに決めてある（CFG.slip）。それまでは しっかり持つ
-  const fmax = 2.2 * b.mass * CFG.gravity, f = Math.hypot(fx, fy, fz);
+  const fmax = (h.loosen > 0 ? 0.75 : 2.2) * b.mass * CFG.gravity, f = Math.hypot(fx, fy, fz);   // ゆるみ中は少しずり下がる
   if (f > fmax) { const s = fmax / f; fx *= s; fy *= s; fz *= s; }
   tmpV2.set(fx, fy, fz);
   b.applyForce(tmpV2, new CANNON.Vec3(tmpV.x - b.position.x, tmpV.y - b.position.y, tmpV.z - b.position.z));
@@ -1079,6 +1163,10 @@ const approach = (v, t, d) => (v < t ? Math.min(t, v + d) : Math.max(t, v - d));
 function step(dt) {
   const M = G.M, C = CFG.claw; if (!M) return;
   G.t += dt;
+  if (M.gameTime && !G.timeUp && G.phase !== 'over') {          // ゲーム全体の時間（やさしい）
+    G.gameLeft -= dt;
+    if (G.gameLeft <= 0) { G.gameLeft = 0; G.timeUp = true; toast('タイムアップ！'); if (G.phase === 'ready') endGame(); }
+  }
   // --- 台車の動き ---
   let tx = 0, tz = 0;
   if (G.phase === 'ready') {
@@ -1145,7 +1233,7 @@ function step(dt) {
   // ツメ1本ずつの角度：つかんでいる間は、いつも景品の表面にふれるところまでとじる（景品が動いたり回ったりしても合わせ続ける）
   const ext = claw.hold ? fingerExtents(claw.hold.p) : null;
   for (let i = 0; i < claw.fa.length; i++) {
-    const t = ext ? angleFor(Math.max(0.12, ext[i] + 0.05)) : claw.angleT;
+    const t = ext ? angleFor(Math.max(0.12, ext[i] + 0.05)) + (claw.hold.loosen > 0 ? 0.22 : 0) : claw.angleT;
     claw.fa[i] += (t - claw.fa[i]) * (ext ? kh : ka);
   }
   slipCheck();
@@ -1213,10 +1301,11 @@ function updateWon(dt) {
     }
   }
 }
+function endGame() { G.phase = 'over'; G.overT = 0; G.resultShown = false; updateHud(); }
 function nextPlay() {
   if (G.won.length > G.wonBefore) G.miss = 0; else G.miss++;
   const left = G.prizes.filter(p => !p.won).length;
-  if (left === 0 || G.plays <= 0) { G.phase = 'over'; G.overT = 0; G.resultShown = false; }
+  if (left === 0 || G.plays <= 0 || G.timeUp) { G.phase = 'over'; G.overT = 0; G.resultShown = false; }
   else { G.phase = 'ready'; G.hs = 0; G.pt = 0; G.timeLeft = G.M.timeLimit; G.timerOn = false; }
   updateHud();
 }
@@ -1293,6 +1382,7 @@ function sfx(n) {
   else if (n === 'open') tone(380, 0.1, { type: 'triangle', v: 0.08 });
   else if (n === 'win') [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.22, { at: i * 0.09, type: 'triangle', v: 0.13 }));
   else if (n === 'drop') { tone(140, 0.25, { to: 70, type: 'sine', v: 0.22, at: 0.35 }); tone(110, 0.2, { to: 60, type: 'triangle', v: 0.12, at: 0.6 }); }
+  else if (n === 'gatan') { tone(95, 0.18, { type: 'square', v: 0.12 }); tone(140, 0.08, { type: 'square', v: 0.08, at: 0.09 }); tone(120, 0.08, { type: 'square', v: 0.07, at: 0.17 }); }
   else if (n === 'roll') [0, 0.12, 0.22, 0.31, 0.39, 0.46].forEach((a, i) => tone(300 + i * 25, 0.06, { type: 'triangle', v: 0.09, at: a }));
   else if (n === 'pon') tone(880, 0.12, { to: 1200, type: 'sine', v: 0.09 });
   else if (n === 'end') [392, 523, 659, 784].forEach((f, i) => tone(f, 0.3, { at: i * 0.14, type: 'triangle', v: 0.12 }));
@@ -1313,7 +1403,7 @@ function updateHud() {
   $('pPlays').innerHTML = isFinite(G.plays)
     ? (G.mode === 'hard' ? `コイン <b>${G.plays}</b>まい` : `あと <b>${G.plays}</b>${rb('回', 'かい')}`)
     : `${rb('何回', 'なんかい')}でも できる`;
-  $('pTime').style.display = M.timeLimit ? '' : 'none';
+  $('pTime').style.display = (M.timeLimit || M.gameTime) ? '' : 'none';
 }
 function layoutControls() {
   const c = G.M ? G.M.control : '';
@@ -1340,21 +1430,45 @@ function helpSteps(mode) {
   if (mode === 'easy') return [
     [ICON.stick, `<b>スティック</b>で クレーンを うごかす。クレーンの <b>かげ</b>が おりる ところ。`],
     [ICON.catch, `<b>キャッチ</b>を おすと、クレーンが おりて つかむ。`],
-    [ICON.goal, `${ana}まで はこべたら <b>ゲット！</b> アームの ${rb('力', 'ちから')}は ${rb('毎回', 'まいかい')} ちがうよ。`],
+    [ICON.goal, `${ana}まで はこべたら <b>ゲット！</b> ${CFG.modes.easy.gameTime ? `${CFG.modes.easy.gameTime}${rb('秒', 'びょう')}の あいだに たくさん とろう。` : `${rb('何回', 'なんかい')}でも できるよ。`}`],
     [ICON.eye, `「${yoko}」で、おくゆきを たしかめよう。`]];
   if (mode === 'normal') return [
     [ICON.dpad, `<b>やじるしボタン</b>を おしている あいだ うごく。${rb('何回', 'なんかい')}でも なおせる。`],
-    [ICON.catch, `<b>キャッチ</b>で おろす。30${rb('秒', 'びょう')} たつと ${rb('自動', 'じどう')}で おりる。`],
-    [ICON.goal, `${ana}まで はこべたら <b>ゲット！</b> アームの ${rb('力', 'ちから')}は ${rb('毎回', 'まいかい')} ちがう。ぜんぶで 10${rb('回', 'かい')}。`],
+    [ICON.catch, `<b>キャッチ</b>で おろす。${CFG.modes.normal.timeLimit ? `${CFG.modes.normal.timeLimit}${rb('秒', 'びょう')} たつと ${rb('自動', 'じどう')}で おりる。` : ''}`],
+    [ICON.goal, `${ana}まで はこべたら <b>ゲット！</b> アームの ${rb('力', 'ちから')}は ${rb('毎回', 'まいかい')} ちがう。ぜんぶで ${CFG.modes.normal.plays}${rb('回', 'かい')}。`],
     [ICON.drag, `${rb('画面', 'がめん')}を ゆびで ${rb('横', 'よこ')}に なぞると、まわりこんで ${rb('見', 'み')}られる。おくゆきを たしかめよう。`]];
   return [
     [ICON.bx, `<b>① よこ</b>を おしている あいだ ${rb('右', 'みぎ')}へ。はなすと とまる（1${rb('回', 'かい')}だけ）。`],
     [ICON.bz, `<b>② おく</b>を おしている あいだ おくへ。はなすと ${rb('自動', 'じどう')}で おりる。`],
-    [ICON.sway, `アームは すこし <b>ゆれる</b>。まんなかを ねらおう。とれないと だんだん アームが つよく なる。コインは 6まい。`],
+    [ICON.sway, `アームは すこし <b>ゆれる</b>。まんなかを ねらおう。とれないと だんだん アームが つよく なる。コインは ${CFG.modes.hard.plays}まい。`],
     [ICON.dragv, `${rb('画面', 'がめん')}を ${rb('横', 'よこ')}に なぞると まわりこめる。${rb('上下', 'じょうげ')}に なぞると せのび・しゃがむ。`]];
 }
 let pendingMode = null, helpResume = false;
-function showOv(id) { for (const o of ['ovMenu', 'ovHelp', 'ovRes']) $(o).classList.toggle('show', o === id); G.paused = !!id; }
+function showOv(id) { for (const o of ['ovMenu', 'ovHelp', 'ovRes', 'ovSet']) $(o).classList.toggle('show', o === id); G.paused = !!id; if (id === 'ovMenu') refreshMenu(); }
+/* ---- せってい（時間・回数）。ページを開いているあいだだけ覚える ---- */
+const secTxt = (v) => v ? `${v}${rb('秒', 'びょう')}` : 'なし';
+const OPT_TXT = {
+  easyTime: (v) => v ? `${v}${rb('秒', 'びょう')}` : 'なし',
+  normalPlays: (v) => `${v}${rb('回', 'かい')}`,
+  normalTime: (v) => v ? `${v}${rb('秒', 'びょう')}` : 'なし',
+  hardCoins: (v) => `${v}まい`,
+};
+function optVal(k) { const o = CFG.options[k]; return CFG.modes[o.mode][o.key]; }
+function refreshSet() { document.querySelectorAll('.stepper').forEach(st => { st.querySelector('.sv').innerHTML = OPT_TXT[st.dataset.opt](optVal(st.dataset.opt)); }); }
+function refreshMenu() {
+  const E = CFG.modes.easy, N = CFG.modes.normal, H = CFG.modes.hard;
+  $('mdE').innerHTML = `スティックで うごかす<br>${E.gameTime ? `${E.gameTime}${rb('秒', 'びょう')}で とれるだけ` : `${rb('何回', 'なんかい')}でも できる`}`;
+  $('mdN').innerHTML = `やじるしボタンで うごかす<br>${N.plays}${rb('回', 'かい')}${N.timeLimit ? `・${N.timeLimit}${rb('秒', 'びょう')}ずつ` : ''}`;
+  $('mdH').innerHTML = `ほんものみたいに ゆれる<br>ボタン1${rb('回', 'かい')}ずつ・コイン${H.plays}まい`;
+}
+document.querySelectorAll('.stepper').forEach(st => {
+  const [bl, br] = st.querySelectorAll('.sb'), o = CFG.options[st.dataset.opt];
+  const move = (d) => {
+    const L = o.list, i = Math.max(0, L.indexOf(CFG.modes[o.mode][o.key]));
+    CFG.modes[o.mode][o.key] = L[Math.min(L.length - 1, Math.max(0, i + d))]; sfx('tap'); refreshSet();
+  };
+  bl.addEventListener('click', () => move(-1)); br.addEventListener('click', () => move(1));
+});
 function openHelp(mode, resume) {
   pendingMode = mode; helpResume = resume;
   $('helpTitle').innerHTML = `${CFG.modes[mode].name}${mode === 'hard' ? 'モード' : ''}の ${rb('遊', 'あそ')}び${rb('方', 'かた')}`;
@@ -1371,6 +1485,8 @@ function showResult() {
   sfx('end'); showOv('ovRes');
 }
 document.querySelectorAll('.mbtn').forEach(b => b.addEventListener('click', () => { audioInit(); sfx('tap'); openHelp(b.dataset.mode, false); }));
+$('bSet').addEventListener('click', () => { audioInit(); sfx('tap'); refreshSet(); showOv('ovSet'); });
+$('bSetOk').addEventListener('click', () => { sfx('tap'); showOv('ovMenu'); });
 $('bStart').addEventListener('click', () => {
   audioInit(); sfx('tap');
   if (!helpResume) startGame(pendingMode);
@@ -1486,7 +1602,8 @@ function animate(dt) {
   if (G.phase === 'ready') claw.angleT = C.openA;
   claw.fingers.forEach((f, i) => { f.rotation.z = claw.fa[i]; });
   const px = clawPX(), pz = clawPZ();
-  clawVis.position.set(px, claw.y, pz); clawVis.rotation.set(claw.sz * 0.6, 0, -claw.sx * 0.6);
+  clawVis.position.set(px, claw.y, pz);
+  if (claw.rattle > 0) { claw.rattle -= dt; const j = 0.03 * Math.min(1, claw.rattle * 4); clawVis.position.x += (Math.random() - 0.5) * j; clawVis.position.y += (Math.random() - 0.5) * j; clawVis.position.z += (Math.random() - 0.5) * j; } clawVis.rotation.set(claw.sz * 0.6, 0, -claw.sx * 0.6);
   bridge.position.set(0, C.railY + 0.1, claw.cz); carriage.position.set(claw.cx, C.railY, claw.cz);
   const top = new THREE.Vector3(claw.cx, C.railY - 0.14, claw.cz), bot = new THREE.Vector3(px, claw.y + 0.25, pz);
   rope.position.copy(top).add(bot).multiplyScalar(0.5); rope.scale.y = top.distanceTo(bot);
@@ -1507,10 +1624,13 @@ function animate(dt) {
     if (p.won) continue;
     p.holder.position.copy(p.body.position); p.holder.quaternion.copy(p.body.quaternion);
   }
+  // 看板の電球：3つおきに順番に光る
+  const ph = Math.floor(G.t * 6) % 3 + (G.M ? 0 : Math.floor(performance.now() / 160) % 3);
+  bulbs.forEach((b, i) => b.material.color.copy((i >> 1) % 3 === ph % 3 ? BULB_ON[(i >> 1) % 3] : BULB_OFF));
   // 画面表示
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').className = ''; }
-  if (M && M.timeLimit) {
-    const s = Math.ceil(G.timeLeft); const e = $('pTime');
+  if (M && (M.timeLimit || M.gameTime)) {
+    const s = Math.ceil(M.gameTime ? G.gameLeft : G.timeLeft); const e = $('pTime');
     if (e.dataset.s !== String(s)) { e.dataset.s = String(s); e.innerHTML = `のこり <b>${s}</b>${rb('秒', 'びょう')}`; e.classList.toggle('hurry', s <= 5); }
   }
   if (M && M.control === 'two') {
@@ -1542,7 +1662,7 @@ const hook = window.__game = {
     gripQ: (i) => gripQ(G.prizes[i], true),
     getState() {
       return {
-        mode: G.mode, phase: G.phase, hs: G.hs, plays: G.plays, won: G.won.length, timeLeft: G.timeLeft, paused: G.paused, view: G.view,
+        mode: G.mode, phase: G.phase, gameLeft: G.gameLeft, hs: G.hs, plays: G.plays, won: G.won.length, timeLeft: G.timeLeft, paused: G.paused, view: G.view,
         claw: { x: clawPX(), y: claw.y, z: clawPZ(), cx: claw.cx, cz: claw.cz, sx: claw.sx, sz: claw.sz, holding: claw.hold ? G.prizes.indexOf(claw.hold.p) : -1, q: claw.hold ? claw.hold.q : 0 },
         prizes: G.prizes.map(p => { const c = new CANNON.Vec3(); p.body.pointToWorldFrame(p.centerL, c); return { key: p.key, won: p.won, x: p.body.position.x, y: p.body.position.y, z: p.body.position.z, cx: c.x, cy: c.y, cz: c.z }; }),
       };
@@ -1562,7 +1682,7 @@ function loop(now) {
   renderer.render(scene, camera);
   hook.frames++; hook.elapsed += dt;
 }
-$('ver').textContent = CFG.version;
+$('ver').textContent = CFG.version; refreshMenu();
 buildClaw(3); updateHud();
 requestAnimationFrame(loop);
 </script>
