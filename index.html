@@ -123,7 +123,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;touch-action
 </script>
 </head>
 <body>
-<!-- build: 2026-11-14g -->
+<!-- build: 2026-11-14h -->
 <canvas id="c"></canvas>
 
 <div id="hud">
@@ -188,7 +188,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
    調整値（ここの数字だけ直せば、速さ・むずかしさを変えられます）
    ===================================================================== */
 const CFG = {
-  version: 'v2026-11-14g',
+  version: 'v2026-11-14h',
   field: { W: 6.0, D: 4.6 },          // 台の中の広さ（横・奥）
   hole:  { w: 1.7, d: 1.7 },          // 落とし口（手前の左すみ）
   gravity: 14,
@@ -743,7 +743,7 @@ hubBody.addShape(new CANNON.Sphere(CFG.claw.hubR)); hubBody.isClaw = true; world
 
 function buildClaw(n) {
   clawVis.clear(); for (const b of claw.bodies) world.removeBody(b);
-  claw.fingers = []; claw.fingerDirs = []; claw.bodies = [];
+  claw.fingers = []; claw.fingerDirs = []; claw.bodies = []; claw.fa = [];
   const metal = mat(0xf2eef8, { metalness: 0.55, roughness: 0.3 }), rubber = mat(0xff86a8, { roughness: 0.6 });
   put(clawVis, new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.3, 20), mat(0xcdbcf8, { roughness: 0.4 })), [0, 0.02, 0]);
   put(clawVis, sph(0.2, mat(0xcdbcf8, { roughness: 0.4 }), 18, 12), [0, 0.17, 0], null, [1, 0.6, 1]);
@@ -756,7 +756,7 @@ function buildClaw(n) {
     fp.add(stickMesh([0.30, -0.38, 0], [FT[0], FT[1], 0], 0.04, metal));   // 「く」の字の角度は約105°
     put(fp, sph(0.055, metal, 10, 8), [0.30, -0.38, 0]);
     put(fp, sph(0.085, rubber, 12, 10), [FT[0], FT[1], 0]);
-    claw.fingers.push(fp);
+    claw.fingers.push(fp); claw.fa.push(claw.angle);
     claw.fingerDirs.push([Math.cos(phi), -Math.sin(phi)]);
     const b = new CANNON.Body({ type: CANNON.Body.KINEMATIC, collisionFilterGroup: GRP.CLAW, collisionFilterMask: 0, material: clawMat });
     b.addShape(new CANNON.Sphere(CFG.claw.tipR)); b.isClaw = true; world.addBody(b); claw.bodies.push(b);
@@ -775,13 +775,16 @@ function setClawMask(on) {
 /* アームの当たり判定ボディを目標位置へ動かす（速度で動かすことで、押された景品が自然に動く） */
 function driveClawBodies(dt, active) {
   const px = claw.cx + claw.sx, pz = claw.cz + claw.sz;
-  const r = tipRadius(claw.angle), dy = tipDrop(claw.angle);    // ツメの開き具合に合わせて動く（とじるときに景品をはらう）
+
   const set = (b, x, y, z) => {
     if (active) b.velocity.set((x - b.position.x) / dt, (y - b.position.y) / dt, (z - b.position.z) / dt);
     else { b.velocity.set(0, 0, 0); b.position.set(x, y, z); }
   };
   set(hubBody, px, claw.y, pz);
-  claw.bodies.forEach((b, i) => set(b, px + claw.fingerDirs[i][0] * r, claw.y - dy, pz + claw.fingerDirs[i][1] * r));
+  claw.bodies.forEach((b, i) => {                              // ツメの開き具合に合わせて動く（とじるときに景品をはらう）
+    const r = tipRadius(claw.fa[i]), dy = tipDrop(claw.fa[i]);
+    set(b, px + claw.fingerDirs[i][0] * r, claw.y - dy, pz + claw.fingerDirs[i][1] * r);
+  });
 }
 
 /* ねらいの目印 */
@@ -947,35 +950,34 @@ function doGrab() {
     claw.hold = { p: best, q: bq, ox: tmpV.x - ax, oz: tmpV.z - az, drop: Math.max(0.45, Math.min(0.72, claw.y - tmpV.y)), startY: tmpV.y, lifted: false };
     best.body.angularDamping = 0.9;
     best.body.collisionFilterMask = GRP.STATIC | GRP.PRIZE;    // つかんだ景品にはツメが当たらないようにする
-    claw.angleT = angleFor(gripRadius(best));        // 景品の形と向きに合わせて、ツメが表面で止まるようにする
+    claw.angleT = CFG.claw.closeA;                   // ツメの角度は、つかんでいる間 step の中で1本ずつ景品に合わせる
     sfx('grab');
   } else { claw.angleT = CFG.claw.closeA; sfx('miss'); }
 }
 /* つかむ景品の、ツメの方向へのはみ出し（いちばん外側まで）の長さ。ツメはそこで止める */
 const _v = new CANNON.Vec3(), _w = new CANNON.Vec3(), _q = new CANNON.Quaternion();
-function gripRadius(p) {
-  // ツメの先がとじる高さ（y0〜y1）での、景品の太さだけを見る（上のほうが太くても、先の高さで細ければそこまで とじる）
-  const b = p.body, ax = clawPX(), az = clawPZ(); let best = 0;
-  const y0 = claw.y - TIP_DROP - 0.08, y1 = claw.y - tipDrop(CFG.claw.openA) + 0.05;
+function fingerExtents(p) {
+  // ツメ1本ずつについて、ツメの先の高さ（y0〜y1）で景品がどこまで出ているかを調べる。ツメはそこまでとじる
+  const b = p.body, ax = clawPX(), az = clawPZ(), n = claw.fingerDirs.length, ext = new Array(n).fill(0);
+  const y0 = claw.y - TIP_DROP - 0.08, y1 = claw.y - 0.6;
   const push = (x, y, z, r) => {
-    if (y < y0 - 0.05 || y > y1) return;
-    for (const [dx, dz] of claw.fingerDirs) best = Math.max(best, (x - ax) * dx + (z - az) * dz + r);
+    if (y < y0 || y > y1) return;
+    for (let i = 0; i < n; i++) { const d = (x - ax) * claw.fingerDirs[i][0] + (z - az) * claw.fingerDirs[i][1] + r; if (d > ext[i]) ext[i] = d; }
   };
-  b.shapes.forEach((sh, i) => {
-    b.quaternion.mult(b.shapeOrientations[i], _q);
-    b.quaternion.vmult(b.shapeOffsets[i], _v); _v.vadd(b.position, _v);
+  b.shapes.forEach((sh, si) => {
+    b.quaternion.mult(b.shapeOrientations[si], _q);
+    b.quaternion.vmult(b.shapeOffsets[si], _v); _v.vadd(b.position, _v);
     if (sh.type === CANNON.Shape.types.SPHERE) {           // 球は、その高さでの輪切りの半径
       const r = sh.radius, yy = Math.min(y1, Math.max(y0, _v.y)), dy = yy - _v.y;
       if (Math.abs(dy) < r) push(_v.x, yy, _v.z, Math.sqrt(r * r - dy * dy));
+    } else {                                               // 箱・円柱は、頂点どうしを結ぶ線の上の点で調べる
+      const isBox = sh.type === CANNON.Shape.types.BOX, loc = isBox ? sh.convexPolyhedronRepresentation.vertices : sh.vertices;
+      const wp = loc.map(vt => { const o = new CANNON.Vec3(); _q.vmult(vt, o); o.vadd(_v, o); return o; });
+      for (let a = 0; a < wp.length; a++) for (let c = a; c < wp.length; c++) for (let t = 0; t <= 1; t += 0.125)
+        push(wp[a].x + (wp[c].x - wp[a].x) * t, wp[a].y + (wp[c].y - wp[a].y) * t, wp[a].z + (wp[c].z - wp[a].z) * t, isBox ? -0.03 : 0);
     }
-    else if (sh.type === CANNON.Shape.types.BOX) {
-      const e = sh.halfExtents;
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
-        _q.vmult(_w.set(e.x * sx, e.y * sy, e.z * sz), _w); push(_v.x + _w.x, _v.y + _w.y, _v.z + _w.z, -0.04);   // 角は少し丸める
-      }
-    } else if (sh.vertices) for (const vt of sh.vertices) { _q.vmult(vt, _w); push(_v.x + _w.x, _v.y + _w.y, _v.z + _w.z, 0); }
   });
-  return Math.min(0.6, Math.max(0.12, best + 0.04));
+  return ext;
 }
 function releaseHold(slip) {
   const h = claw.hold; if (!h) return;
@@ -1101,7 +1103,14 @@ function step(dt) {
     if (G.won.every(p => p.anim.done)) G.overT += dt;    // 景品が出てきおわってから結果を出す
     if (G.overT > CFG.resultDelay && !G.resultShown) { G.resultShown = true; showResult(); }
   }
-  claw.angle += (claw.angleT - claw.angle) * (1 - Math.exp(-12 * dt));
+  const ka = 1 - Math.exp(-12 * dt), kh = 1 - Math.exp(-20 * dt);
+  claw.angle += (claw.angleT - claw.angle) * ka;
+  // ツメ1本ずつの角度：つかんでいる間は、いつも景品の表面にふれるところまでとじる（景品が動いたり回ったりしても合わせ続ける）
+  const ext = claw.hold ? fingerExtents(claw.hold.p) : null;
+  for (let i = 0; i < claw.fa.length; i++) {
+    const t = ext ? angleFor(Math.max(0.12, ext[i] + 0.05)) : claw.angleT;
+    claw.fa[i] += (t - claw.fa[i]) * (ext ? kh : ka);
+  }
   driveClawBodies(dt, true);
   applyHold();
   updateWon(dt);
@@ -1432,7 +1441,7 @@ function animate(dt) {
   camera.position.copy(camPos); camera.lookAt(camTgt);
   // クレーン
   if (G.phase === 'ready') claw.angleT = C.openA;
-  for (const f of claw.fingers) f.rotation.z = claw.angle;
+  claw.fingers.forEach((f, i) => { f.rotation.z = claw.fa[i]; });
   const px = clawPX(), pz = clawPZ();
   clawVis.position.set(px, claw.y, pz); clawVis.rotation.set(claw.sz * 0.6, 0, -claw.sx * 0.6);
   bridge.position.set(0, C.railY + 0.1, claw.cz); carriage.position.set(claw.cx, C.railY, claw.cz);
