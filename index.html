@@ -132,7 +132,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;touch-action
 </script>
 </head>
 <body>
-<!-- build: 2026-11-14i -->
+<!-- build: 2026-11-14j -->
 <canvas id="c"></canvas>
 
 <div id="hud">
@@ -197,7 +197,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
    調整値（ここの数字だけ直せば、速さ・むずかしさを変えられます）
    ===================================================================== */
 const CFG = {
-  version: 'v2026-11-14i',
+  version: 'v2026-11-14j',
   field: { W: 6.0, D: 4.6 },          // 台の中の広さ（横・奥）
   hole:  { w: 1.7, d: 1.7 },          // 落とし口（手前の左すみ）
   gravity: 14,
@@ -210,7 +210,11 @@ const CFG = {
     hubR: 0.22, tipR: 0.11, margin: 0.75,
   },
   hold: { k: 220, c: 14, releaseDist: 0.42, minQ: 0.12, slipT: 0.15 },   // つかんだ景品を支えるばね。slipT＝力が足りない状態がこの秒数つづくとすべり落ちる
-  sway: { omega: 2.6, zeta: 0.16 },                          // アームのゆれ（ふりこ）
+  sway: { omega: 2.6, zeta: 0.16 },
+  /* すべり落ち：つかんだ瞬間に「落ちるかどうか」と「いつ落ちるか」を決める（本物でよく落ちる場面だけで落とす）
+     line＝これより力が弱いと落ちる／top・start・travel＝落ちる場面の割合（上がりきってガクンとゆれたとき・横に動き出したとき・移動中）
+     safe＝穴の中心からこれ以上はなれた所でだけ落とす／topPause＝上がりきってから横に動き出すまでの秒数 */
+  slip: { line: 1.0, top: 0.4, start: 0.35, travel: 0.25, safe: 1.9, topPause: 0.35, jolt: 0.22 },                          // アームのゆれ（ふりこ）
   originalColorRate: 0.25,
   prizeAngDamp: 0.15,      // 景品の回転のしにくさ（小さいほど、ツメが当たったときに倒れやすい）
   pressTime: 0.3,          // ツメが景品の上に乗ってから、おしこみ続ける秒数（この間に景品が倒れたりずれたりする）                                   // キャラが元の色で出る割合
@@ -223,7 +227,7 @@ const CFG = {
       accel: 30, decel: 40,            // 動き出し・止まりの鋭さ（大きいほどピタッと止まる）
       swayGain: 0.03, topKick: 0.04,   // ゆれの大きさ
       grabR: 0.6,                      // つかめる範囲（中心からのずれの許容）
-      sLift: 2.0, sTop: 0.95,          // アームの強さ（持ち上げ中／上がりきった後）。1.0で景品の重さとつり合う
+      sLift: 2.0, sTop: 1.15,          // アームの強さ（持ち上げ中／上がりきった後）。1.0で景品の重さとつり合う
       strRand: [0.7, 1.2],            // 1回ごとのアームの強さのばらつき（本物のように毎回ちがう）
       weakenT: 0.4,                    // 上がりきってから力がぬけきるまでの秒数
       guide: 'shadow', fence: 0, nudge: 1.6, orient: false, comStrict: false, easeTop: true, fingerHit: false,
@@ -234,7 +238,7 @@ const CFG = {
     normal: {
       name: 'ふつう', control: 'dpad', fingers: 3, plays: 10, timeLimit: 30,
       speed: 1.6, accel: 20, decel: 22, swayGain: 0.08, topKick: 0.08,
-      grabR: 0.5, sLift: 2.0, sTop: 1.1, strRand: [0.65, 1.15], weakenT: 0.4,
+      grabR: 0.5, sLift: 2.0, sTop: 1.2, strRand: [0.65, 1.15], weakenT: 0.4,
       guide: 'none', fence: 0.10, nudge: 1.2, orient: false, comStrict: false, easeTop: true, fingerHit: true,
       layout: 'mixed',
       cam: { drag: true, yaw: [-95, 95], lift: false },      // 画面をなぞって横に回りこめる（角度は度）
@@ -243,7 +247,7 @@ const CFG = {
     hard: {
       name: 'ホンモノ', control: 'two', fingers: 2, plays: 6, timeLimit: 0,
       speed: 1.1, accel: 10, decel: 3.5, swayGain: 0.2, topKick: 0.16,
-      grabR: 0.48, sLift: 2.0, sTop: 1.5, strRand: [0.82, 1.1], weakenT: 0.5,
+      grabR: 0.48, sLift: 2.0, sTop: 1.35, strRand: [0.82, 1.1], weakenT: 0.5,
       pity: 0.08,                      // 取れないたびに少しずつアームが強くなる（本物の「確率機」のしくみ）。取れたら元にもどる
       guide: 'none', fence: 0.22, nudge: 0.9, orient: true, comStrict: true, easeTop: false, fingerHit: true,
       layout: 'pile',
@@ -960,6 +964,11 @@ function doGrab() {
   if (best && bq >= CFG.hold.minQ) {
     best.body.pointToWorldFrame(best.centerL, tmpV);
     claw.hold = { p: best, q: bq, ox: tmpV.x - ax, oz: tmpV.z - az, drop: Math.max(0.45, Math.min(0.72, claw.y - tmpV.y)), startY: tmpV.y, lifted: false };
+    const S = CFG.slip, eff = M.sTop * G.strF * bq * (best.def.holdMul || 1);
+    if (eff < S.line) {
+      const r = rnd(), when = r < S.top ? 'top' : r < S.top + S.start ? 'start' : 'travel';
+      claw.hold.plan = { when, f: 0.3 + rnd() * 0.4, d: 0.12 + rnd() * 0.2 };
+    }
     best.body.angularDamping = 0.9;
     best.body.collisionFilterMask = GRP.STATIC | GRP.PRIZE;    // つかんだ景品にはツメが当たらないようにする
     claw.angleT = CFG.claw.closeA;                   // ツメの角度は、つかんでいる間 step の中で1本ずつ景品に合わせる
@@ -1004,6 +1013,22 @@ function currentStrength() {
   const k = Math.min(1, G.topT / M.weakenT);
   return (M.sLift + (M.sTop - M.sLift) * k) * G.strF;
 }
+/* 決めておいた場面で、景品をツメから落とす。穴の近くでは落とさない（落ちたらほぼ穴に入ってしまうため） */
+function slipCheck() {
+  const h = claw.hold; if (!h || !h.plan || G.phase !== 'return') return;
+  const S = CFG.slip, pl = h.plan, dist = Math.hypot(HOME.x - claw.cx, HOME.z - claw.cz);
+  let when = pl.when;
+  if (when !== 'top' && h.d0 < S.safe + 0.2) when = 'top';                  // 穴のすぐ近くでつかんだときは、上がりきったところで落とす
+  let go = false;
+  if (when === 'top') go = G.topT >= 0.12 + pl.d * 0.5;
+  else if (when === 'start') go = G.topT >= S.topPause + pl.d;
+  else { const travel = h.d0 - dist; go = travel >= pl.f * (h.d0 - S.safe) && G.topT >= S.topPause; }
+  if (go && (dist > S.safe || when === 'top')) {
+    const v = h.p.body.velocity;
+    releaseHold(true);
+    if (when === 'start') { v.x = -claw.vx * 0.3; v.z = -claw.vz * 0.3; }   // 動き出しで取り残されるように、少し後ろへ
+  }
+}
 function applyHold() {
   const h = claw.hold; if (!h) return;
   const b = h.p.body, H = CFG.hold;
@@ -1015,12 +1040,9 @@ function applyHold() {
   let fx = H.k * ex - H.c * (b.velocity.x - (claw.vx + claw.svx));
   let fy = H.k * ey - H.c * (b.velocity.y - claw.vy);
   let fz = H.k * ez - H.c * (b.velocity.z - (claw.vz + claw.svz));
-  const fmax = currentStrength() * h.q * (h.p.def.holdMul || 1) * b.mass * CFG.gravity, f = Math.hypot(fx, fy, fz);
-  if (f > fmax) {
-    const s = fmax / f; fx *= s; fy *= s; fz *= s;
-    // 力が足りない状態がつづくと、ツメからすべり落ちる（ずるずる下がり続けないようにする）
-    if (G.phase !== 'close' && ey > 0.1) { h.over = (h.over || 0) + STEP; if (h.over > H.slipT) { releaseHold(true); return; } }
-  } else h.over = Math.max(0, (h.over || 0) - STEP * 0.5);
+  // 落ちるかどうかは つかんだときに決めてある（CFG.slip）。それまでは しっかり持つ
+  const fmax = 2.2 * b.mass * CFG.gravity, f = Math.hypot(fx, fy, fz);
+  if (f > fmax) { const s = fmax / f; fx *= s; fy *= s; fz *= s; }
   tmpV2.set(fx, fy, fz);
   b.applyForce(tmpV2, new CANNON.Vec3(tmpV.x - b.position.x, tmpV.y - b.position.y, tmpV.z - b.position.z));
   if (tmpV.y > h.startY + 0.35) h.lifted = true;
@@ -1066,7 +1088,8 @@ function step(dt) {
     if (M.control === 'two' && G.hs === 4) { if (Math.hypot(claw.vx, claw.vz) < 0.03) { G.pt += dt; if (G.pt > 0.35) startDescend(); } }
   } else if (G.phase === 'return') {
     const dx = HOME.x - claw.cx, dz = HOME.z - claw.cz, d = Math.hypot(dx, dz);
-    if (d > 0.001) { const v = Math.min(C.returnSpeed, d * 4 + 0.15); tx = dx / d * v; tz = dz / d * v; }
+    if (G.topT < CFG.slip.topPause) { /* 上がりきって少し止まる */ }
+    else if (d > 0.001) { const v = Math.min(C.returnSpeed, d * 4 + 0.15); tx = dx / d * v; tz = dz / d * v; }
     if (d < 0.03) { claw.cx = HOME.x; claw.cz = HOME.z; tx = tz = 0; claw.vx = claw.vz = 0; G.pt += dt; if (G.pt > 0.3) { G.phase = 'open'; G.pt = 0; } }
     G.topT += dt;
   }
@@ -1100,7 +1123,9 @@ function step(dt) {
     claw.vy = v; claw.y += v * dt;
     if (claw.y >= C.topY) {
       claw.y = C.topY; claw.vy = 0; G.phase = 'return'; G.pt = 0; G.topT = 0;
-      if (M.topKick) { const a = rnd() * 6.283; claw.svx += Math.cos(a) * M.topKick; claw.svz += Math.sin(a) * M.topKick; }
+      const jolt = (M.topKick || 0) + (claw.hold && claw.hold.plan && claw.hold.plan.when === 'top' ? CFG.slip.jolt : 0);   // 落ちる回は ガクンと大きめにゆれる
+      if (jolt) { const a = rnd() * 6.283; claw.svx += Math.cos(a) * jolt; claw.svz += Math.sin(a) * jolt; }
+      if (claw.hold) claw.hold.d0 = Math.hypot(HOME.x - claw.cx, HOME.z - claw.cz);
     }
   } else if (G.phase === 'open') {
     G.pt += dt; claw.angleT = C.openA;
@@ -1123,6 +1148,7 @@ function step(dt) {
     const t = ext ? angleFor(Math.max(0.12, ext[i] + 0.05)) : claw.angleT;
     claw.fa[i] += (t - claw.fa[i]) * (ext ? kh : ka);
   }
+  slipCheck();
   driveClawBodies(dt, true);
   applyHold();
   updateWon(dt);
