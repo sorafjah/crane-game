@@ -132,7 +132,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;touch-action
 </script>
 </head>
 <body>
-<!-- build: 2026-11-14h -->
+<!-- build: 2026-11-14i -->
 <canvas id="c"></canvas>
 
 <div id="hud">
@@ -197,7 +197,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
    調整値（ここの数字だけ直せば、速さ・むずかしさを変えられます）
    ===================================================================== */
 const CFG = {
-  version: 'v2026-11-14h',
+  version: 'v2026-11-14i',
   field: { W: 6.0, D: 4.6 },          // 台の中の広さ（横・奥）
   hole:  { w: 1.7, d: 1.7 },          // 落とし口（手前の左すみ）
   gravity: 14,
@@ -226,7 +226,7 @@ const CFG = {
       sLift: 2.0, sTop: 0.95,          // アームの強さ（持ち上げ中／上がりきった後）。1.0で景品の重さとつり合う
       strRand: [0.7, 1.2],            // 1回ごとのアームの強さのばらつき（本物のように毎回ちがう）
       weakenT: 0.4,                    // 上がりきってから力がぬけきるまでの秒数
-      guide: 'ring', fence: 0, nudge: 1.6, orient: false, comStrict: false, easeTop: true, fingerHit: false,
+      guide: 'shadow', fence: 0, nudge: 1.6, orient: false, comStrict: false, easeTop: true, fingerHit: false,
       layout: 'spread',
       cam: { drag: false },                                  // 前・横の切りかえだけ
       prizes: ['cube', 'chick', 'panda', 'rabbit', 'cat', 'car', 'pudding', 'egg', 'bear', 'penguin', 'donut'],
@@ -235,7 +235,7 @@ const CFG = {
       name: 'ふつう', control: 'dpad', fingers: 3, plays: 10, timeLimit: 30,
       speed: 1.6, accel: 20, decel: 22, swayGain: 0.08, topKick: 0.08,
       grabR: 0.5, sLift: 2.0, sTop: 1.1, strRand: [0.65, 1.15], weakenT: 0.4,
-      guide: 'shadow', fence: 0.10, nudge: 1.2, orient: false, comStrict: false, easeTop: true, fingerHit: true,
+      guide: 'none', fence: 0.10, nudge: 1.2, orient: false, comStrict: false, easeTop: true, fingerHit: true,
       layout: 'mixed',
       cam: { drag: true, yaw: [-95, 95], lift: false },      // 画面をなぞって横に回りこめる（角度は度）
       prizes: ['chick', 'panda', 'cat', 'dog', 'ball', 'rabbit', 'egg', 'cube', 'car', 'pudding', 'bear', 'penguin', 'donut'],
@@ -773,6 +773,9 @@ function buildClaw(n) {
   // アームの影：ふつうは目印として影を出す。やさしい（光の目印がある）とホンモノ（目印なし）は出さない
   const cs = !!(G.M && G.M.guide === 'shadow');
   clawVis.traverse(o => { if (o.isMesh) o.castShadow = cs; }); rope.castShadow = cs;
+  // 見えない円盤：画面には映らず、影だけを落とす（アームの影を丸く、わかりやすくするチート）
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(0.36, 32), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, side: THREE.DoubleSide }));
+  disc.rotation.x = -Math.PI / 2; disc.position.y = -0.15; disc.castShadow = cs; disc.visible = cs; clawVis.add(disc);
 }
 const tipRadius = (a) => 0.12 + FT[0] * Math.cos(a) - FT[1] * Math.sin(a);
 const tipDrop = (a) => 0.08 - FT[1] * Math.cos(a) - FT[0] * Math.sin(a);
@@ -993,7 +996,7 @@ function releaseHold(slip) {
   h.p.body.angularDamping = CFG.prizeAngDamp; claw.hold = null;
   h.p.clawFree = 0.6;          // しばらくツメと当たらない。重なりがなくなってから当たるようにもどす（step内）
   if (slip) { h.p.body.velocity.x *= 0.5; h.p.body.velocity.z *= 0.5; }   // すべったときは、ほぼ真下に落ちる
-  if (slip) { if (h.lifted) toast('おしい！', 'sub'); sfx('slip'); claw.angleT = CFG.claw.closeA; }
+  if (slip) { if (h.lifted) h.p.oshiiT = 2.5; sfx('slip'); claw.angleT = CFG.claw.closeA; }   // おしい！は、穴に入らずに落ちたとわかってから出す
 }
 function currentStrength() {
   const M = G.M;
@@ -1137,7 +1140,12 @@ function step(dt) {
         if (near) p.clawFree = 0.1; else p.body.collisionFilterMask = GRP.STATIC | GRP.PRIZE | GRP.CLAW;
       }
     }
-    if (pos.y < -1.2) winPrize(p);
+    if (p.oshiiT > 0) {                       // すべり落ちた景品：床に着いても穴に入っていなければ「おしい！」
+      p.oshiiT -= dt;
+      // 止まって、穴のふちからも離れていたら「おしい！」。穴のふちで止まりきらないときは出さない（あとで穴に入ることがあるため）
+      if (pos.y < p.rest + 0.15 && p.body.velocity.length() < 0.25 && !inHoleXZ(pos, 0.35)) { p.oshiiT = 0; toast('おしい！', 'sub'); }
+    }
+    if (pos.y < -1.2) { p.oshiiT = 0; winPrize(p); }
     else if (!(Math.abs(pos.x) < W / 2 + 0.6 && Math.abs(pos.z) < D / 2 + 0.6 && pos.y < 8)) {
       pos.set(0.6, 1.2, -0.4); p.body.velocity.set(0, 0, 0); p.body.angularVelocity.set(0, 0, 0);
     }
@@ -1304,7 +1312,7 @@ const ICON = {
 function helpSteps(mode) {
   const ana = rb('穴', 'あな'), yoko = rb('横', 'よこ') + 'から' + rb('見', 'み') + 'る';
   if (mode === 'easy') return [
-    [ICON.stick, `<b>スティック</b>で クレーンを うごかす。<b>ひかり</b>が クレーンの おりる ところ。`],
+    [ICON.stick, `<b>スティック</b>で クレーンを うごかす。クレーンの <b>かげ</b>が おりる ところ。`],
     [ICON.catch, `<b>キャッチ</b>を おすと、クレーンが おりて つかむ。`],
     [ICON.goal, `${ana}まで はこべたら <b>ゲット！</b> アームの ${rb('力', 'ちから')}は ${rb('毎回', 'まいかい')} ちがうよ。`],
     [ICON.eye, `「${yoko}」で、おくゆきを たしかめよう。`]];
