@@ -141,7 +141,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;touch-action
 </script>
 </head>
 <body>
-<!-- build: 2026-11-14l -->
+<!-- build: 2026-11-14m -->
 <canvas id="c"></canvas>
 
 <div id="hud">
@@ -218,7 +218,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
    調整値（ここの数字だけ直せば、速さ・むずかしさを変えられます）
    ===================================================================== */
 const CFG = {
-  version: 'v2026-11-14l',
+  version: 'v2026-11-14m',
   field: { W: 6.0, D: 4.6 },          // 台の中の広さ（横・奥）
   hole:  { w: 1.7, d: 1.7 },          // 落とし口（手前の左すみ）
   gravity: 14,
@@ -242,8 +242,8 @@ const CFG = {
     normalTime:  { mode: 'normal', key: 'timeLimit', list: [0, 15, 30, 60] },
     hardCoins:   { mode: 'hard',   key: 'plays',     list: [3, 6, 10, 15] },
   },
-  slip: { line: 1.0, top: 0.4, start: 0.35, travel: 0.25, safe: 1.9, topPause: 0.45, jolt: 0.18,
-          topSlipT: 0.1, topPop: 1.6, swingT: 0.7, bump: 0.05 },   // topPop＝上がりきった衝撃で はねる強さ／swingT＝ゆれてから落ちるまでの秒数／bump＝衝撃でアームがはねる大きさ                          // アームのゆれ（ふりこ）
+  slip: { line: 1.0, top: 0.15, start: 0.5, travel: 0.35, safe: 1.9, topPause: 0.45, jolt: 0.18,
+          topSlipT: 0.1, startSpeed: 0.7, edgeSafe: 0.55, topPop: 1.6, swingT: 0.7, bump: 0.05 },   // topPop＝上がりきった衝撃で はねる強さ／swingT＝ゆれてから落ちるまでの秒数／bump＝衝撃でアームがはねる大きさ                          // アームのゆれ（ふりこ）
   originalColorRate: 0.25,
   prizeAngDamp: 0.15,      // 景品の回転のしにくさ（小さいほど、ツメが当たったときに倒れやすい）
   pressTime: 0.3,          // ツメが景品の上に乗ってから、おしこみ続ける秒数（この間に景品が倒れたりずれたりする）                                   // キャラが元の色で出る割合
@@ -1084,18 +1084,21 @@ function currentStrength() {
 function slipCheck() {
   const h = claw.hold; if (!h || !h.plan || G.phase !== 'return') return;
   const S = CFG.slip, pl = h.plan, dist = Math.hypot(HOME.x - claw.cx, HOME.z - claw.cz);
+  const edge = Math.hypot(Math.max(0, claw.cx - HX1), Math.max(0, HZ1 - claw.cz));   // 穴のふちまでのきょり
   // 場面を決めなおす：ゆれている間に穴に近づきすぎないだけの距離がないときは、手前の場面にする
   const ahead = CFG.claw.returnSpeed * S.swingT;          // ゆれている間に進むきょり
   if (!pl.fixed) {
     if (pl.when === 'travel' && h.d0 < S.safe + ahead + 0.5) pl.when = 'start';
-    if (pl.when === 'start' && h.d0 < S.safe + ahead * 0.6) pl.when = 'top';
+    // 動き出しは、穴まで近いときは ゆれる時間を短くしてでも その場面で落とす（短くしても間に合わないときだけ、上がりきったときにする）
+    pl.swingT = S.swingT;
+    if (pl.when === 'start') { const can = (edge - S.edgeSafe) / S.startSpeed; if (can < 0.3) pl.when = 'top'; else pl.swingT = Math.min(S.swingT, can); }
     pl.fixed = true;
   }
   const when = pl.when;
   if (h.swing) {                                          // ゆれ中：ぬいぐるみが大きくゆれて、ツメからすべり出る
     h.swing.t += STEP;
-    if (h.swing.t >= S.swingT - 0.15) h.loosen = 1;       // さいごはツメが少しゆるむ
-    if (h.swing.t >= S.swingT || dist < S.safe) {
+    if (h.swing.t >= pl.swingT - 0.15) h.loosen = 1;      // さいごはツメが少しゆるむ
+    if (h.swing.t >= pl.swingT || (when === 'start' ? edge < S.edgeSafe : dist < S.safe)) {
       // すべり出るときは、ツメにこすれて前へは あまり進まない（ゆれの動きだけ残す）
       const v = h.p.body.velocity, rx = v.x - claw.vx, rz = v.z - claw.vz;
       releaseHold(true); v.x = rx * 0.8 + claw.vx * 0.2; v.z = rz * 0.8 + claw.vz * 0.2;
@@ -1124,7 +1127,7 @@ function applyHold() {
   h.ox *= 0.94; h.oz *= 0.94;                                 // ツメが中心へ寄せる
   let sx = 0, sz = 0, sag = 0;
   if (h.swing) {                                              // ゆれ：だんだん大きく ぶらんぶらん、少しずつ ずり下がる
-    const u = h.swing.t / CFG.slip.swingT, A = 0.16 * Math.min(1, u * 1.6), w = Math.sin(h.swing.t * Math.PI * 2 * 2.0);
+    const u = h.swing.t / (h.plan.swingT || CFG.slip.swingT), A = 0.16 * Math.min(1, u * 1.6), w = Math.sin(h.swing.t * Math.PI * 2 * 2.0);
     sx = h.swing.dx * A * w; sz = h.swing.dz * A * w; sag = 0.1 * u;
   }
   const tx = clawPX() + h.ox + sx, ty = claw.y - h.drop - sag, tz = clawPZ() + h.oz + sz;
@@ -1187,7 +1190,11 @@ function step(dt) {
   } else if (G.phase === 'return') {
     const dx = HOME.x - claw.cx, dz = HOME.z - claw.cz, d = Math.hypot(dx, dz);
     if (G.topT < CFG.slip.topPause) { /* 上がりきって少し止まる */ }
-    else if (d > 0.001) { const v = Math.min(C.returnSpeed, d * 4 + 0.15); tx = dx / d * v; tz = dz / d * v; }
+    else if (d > 0.001) {
+      let v = Math.min(C.returnSpeed, d * 4 + 0.15);
+      if (claw.hold && claw.hold.swing && claw.hold.plan.when === 'start') v = Math.min(v, CFG.slip.startSpeed);   // 動き出しは ゆっくり
+      tx = dx / d * v; tz = dz / d * v;
+    }
     if (d < 0.03) { claw.cx = HOME.x; claw.cz = HOME.z; tx = tz = 0; claw.vx = claw.vz = 0; G.pt += dt; if (G.pt > 0.3) { G.phase = 'open'; G.pt = 0; } }
     G.topT += dt;
   }
