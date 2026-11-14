@@ -141,7 +141,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;touch-action
 </script>
 </head>
 <body>
-<!-- build: 2026-11-14n -->
+<!-- build: 2026-11-14o -->
 <canvas id="c"></canvas>
 
 <div id="hud">
@@ -218,7 +218,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
    調整値（ここの数字だけ直せば、速さ・むずかしさを変えられます）
    ===================================================================== */
 const CFG = {
-  version: 'v2026-11-14n',
+  version: 'v2026-11-14o',
   field: { W: 6.0, D: 4.6 },          // 台の中の広さ（横・奥）
   hole:  { w: 1.7, d: 1.7 },          // 落とし口（手前の左すみ）
   gravity: 14,
@@ -240,7 +240,7 @@ const CFG = {
     easyTime:    { mode: 'easy',   key: 'gameTime',  list: [30, 60, 90, 120, 180, 0] },
     normalPlays: { mode: 'normal', key: 'plays',     list: [3, 5, 10, 15, 20] },
     normalTime:  { mode: 'normal', key: 'timeLimit', list: [0, 15, 30, 60] },
-    hardCoins:   { mode: 'hard',   key: 'plays',     list: [3, 6, 10, 15] },
+    hardCoins:   { mode: 'hard',   key: 'plays',     list: [3, 5, 10, 15] },
   },
   slip: { line: 1.0, top: 0.15, start: 0.5, travel: 0.35, safe: 1.3, topPause: 0.45, jolt: 0.18,
           topSlipT: 0.1, startSpeed: 0.7, edgeSafe: 0.3, carry: 0.45,   // carry＝すべり落ちるとき、運んでいた勢いがどれだけ残るか（大きいほど ラッキーで穴に入りやすい）
@@ -275,7 +275,7 @@ const CFG = {
       prizes: ['chick', 'panda', 'cat', 'dog', 'ball', 'rabbit', 'egg', 'cube', 'car', 'pudding', 'bear', 'penguin', 'donut'],
     },
     hard: {
-      name: 'ホンモノ', control: 'two', fingers: 2, plays: 6, timeLimit: 0, gameTime: 0,
+      name: 'ホンモノ', control: 'two', fingers: 2, plays: 5, timeLimit: 0, gameTime: 0,
       speed: 1.1, accel: 10, decel: 3.5, swayGain: 0.2, topKick: 0.16,
       grabR: 0.48, sLift: 2.0, sTop: 1.35, strRand: [0.82, 1.1], weakenT: 0.5,
       pity: 0.08,                      // 取れないたびに少しずつアームが強くなる（本物の「確率機」のしくみ）。取れたら元にもどる
