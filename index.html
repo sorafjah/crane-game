@@ -111,7 +111,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;touch-action
 </script>
 </head>
 <body>
-<!-- build: 2026-11-14f -->
+<!-- build: 2026-11-14g -->
 <canvas id="c"></canvas>
 
 <div id="hud">
@@ -176,7 +176,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
    調整値（ここの数字だけ直せば、速さ・むずかしさを変えられます）
    ===================================================================== */
 const CFG = {
-  version: 'v2026-11-14f',
+  version: 'v2026-11-14g',
   field: { W: 6.0, D: 4.6 },          // 台の中の広さ（横・奥）
   hole:  { w: 1.7, d: 1.7 },          // 落とし口（手前の左すみ）
   gravity: 14,
@@ -584,7 +584,7 @@ const DEFS = {
     shapes: [['c', [0.26, 0.36, 0.48], [0, 0.24, 0]], ['s', 0.12, [0, 0.54, 0]]] },
   bear: { name: 'くま', build: makeBear, origin: [0, 0.42, 0], center: [0, 0.5, 0.02], mass: 0.8, gripMul: 1.2, holdMul: 1.15, gripR: 0.3, tint: 'main',
     shapes: [['s', 0.29, [0, 0.3, 0]], ['s', 0.25, [0, 0.7, 0.03]]] },
-  penguin: { name: 'ペンギン', build: makePenguin, origin: [0, 0.38, 0], center: [0, 0.45, 0.02], mass: 0.8, gripMul: 1.25, holdMul: 1.3, gripR: 0.29, tint: 'deep',
+  penguin: { name: 'ペンギン', build: makePenguin, origin: [0, 0.38, 0], center: [0, 0.45, 0.02], mass: 0.8, gripR: 0.29, tint: 'deep',
     shapes: [['s', 0.29, [0, 0.29, 0]], ['s', 0.25, [0, 0.6, 0.02]]] },
   donut: { name: 'ドーナツ', build: makeDonut, origin: [0, 0.13, 0], center: [0, 0.14, 0], mass: 0.6, gripMul: 1.2, holdMul: 1.2, gripR: 0.38, tint: 'main',
     shapes: Array.from({ length: 8 }, (_, i) => ['s', 0.13, [Math.cos(i * Math.PI / 4) * 0.27, 0.13, Math.sin(i * Math.PI / 4) * 0.27]]) },
@@ -687,8 +687,8 @@ const marquee = { tex: null };
     for (let x = 0; x < w; x += 32) { c.fillStyle = 'rgba(255,255,255,0.22)'; c.fillRect(x + 2, 0, 26, h); c.fillStyle = 'rgba(90,70,140,0.25)'; c.fillRect(x + 28, 0, 3, h); }
   });
   put(cab, new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.75), new THREE.MeshBasicMaterial({ map: doorTex })), [HOME.x, -0.6, D / 2 + 0.28]);
-  put(cab, box(W + 0.5, 0.12, 1.0, trimM), [0, -1.05, D / 2 + 0.75]);
-  put(cab, box(W + 0.5, 0.2, 0.08, baseM), [0, -0.95, D / 2 + 1.25]);
+  put(cab, box(W + 0.5, 0.12, 1.75, trimM), [0, -1.05, D / 2 + 1.125]);
+  put(cab, box(W + 0.5, 0.2, 0.08, baseM), [0, -0.95, D / 2 + 2.0]);
 })();
 function drawMarquee() {
   const cv = marquee.tex.image, c = cv.getContext('2d'), w = cv.width, h = cv.height;
@@ -942,15 +942,20 @@ function doGrab() {
 /* つかむ景品の、ツメの方向へのはみ出し（いちばん外側まで）の長さ。ツメはそこで止める */
 const _v = new CANNON.Vec3(), _w = new CANNON.Vec3(), _q = new CANNON.Quaternion();
 function gripRadius(p) {
+  // ツメの先がとじる高さ（y0〜y1）での、景品の太さだけを見る（上のほうが太くても、先の高さで細ければそこまで とじる）
   const b = p.body, ax = clawPX(), az = clawPZ(); let best = 0;
+  const y0 = claw.y - TIP_DROP - 0.08, y1 = claw.y - tipDrop(CFG.claw.openA) + 0.05;
   const push = (x, y, z, r) => {
-    if (y > claw.y + 0.1) return;
+    if (y < y0 - 0.05 || y > y1) return;
     for (const [dx, dz] of claw.fingerDirs) best = Math.max(best, (x - ax) * dx + (z - az) * dz + r);
   };
   b.shapes.forEach((sh, i) => {
     b.quaternion.mult(b.shapeOrientations[i], _q);
     b.quaternion.vmult(b.shapeOffsets[i], _v); _v.vadd(b.position, _v);
-    if (sh.type === CANNON.Shape.types.SPHERE) push(_v.x, _v.y, _v.z, sh.radius);
+    if (sh.type === CANNON.Shape.types.SPHERE) {           // 球は、その高さでの輪切りの半径
+      const r = sh.radius, yy = Math.min(y1, Math.max(y0, _v.y)), dy = yy - _v.y;
+      if (Math.abs(dy) < r) push(_v.x, yy, _v.z, Math.sqrt(r * r - dy * dy));
+    }
     else if (sh.type === CANNON.Shape.types.BOX) {
       const e = sh.halfExtents;
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
@@ -1117,7 +1122,8 @@ function winPrize(p) {
   p.won = true; if (claw.hold && claw.hold.p === p) claw.hold = null;
   world.removeBody(p.body); scene.remove(p.shadow); prizeGroup.remove(p.holder);
   const i = G.won.length; G.won.push(p);
-  p.anim = { t: 0, slot: -W / 2 + 0.55 + i * 0.48, out: false, done: false };
+  const col = i % 8, row = Math.floor(i / 8) % 2;            // 8こずつ 2列にならべる
+  p.anim = { t: 0, slot: -W / 2 + 0.45 + col * 0.75, slotZ: D / 2 + 0.72 + row * 0.78, out: false, done: false };
   sfx('drop'); toast('ゲット！'); sfx('win'); updateHud();
 }
 /* 取れた景品：少し待ってから取り出し口から ころがって出てきて、台の上にならぶ */
@@ -1128,8 +1134,8 @@ function updateWon(dt) {
     const a = p.anim; if (a.done) continue;
     a.t += dt;
     const t = a.t - A.wait; if (t < 0) continue;
-    const y0 = -0.99 + p.rest * 0.6, z0 = D / 2 + 0.05, z1 = D / 2 + 0.78;
-    if (!a.out) { a.out = true; p.holder.scale.setScalar(0.6); trayGroup.add(p.holder); sfx('roll'); }
+    const y0 = -0.99 + p.rest, z0 = D / 2 - 0.2, z1 = a.slotZ;
+    if (!a.out) { a.out = true; p.holder.scale.setScalar(1); trayGroup.add(p.holder); sfx('roll'); }
     if (t < A.roll) {                                     // 手前へころがり出る
       const u = t / A.roll, e = ease(u);
       p.holder.position.set(HOME.x, y0 + Math.abs(Math.sin(u * Math.PI * 2)) * 0.12 * (1 - u), z0 + (z1 - z0) * e);
@@ -1369,7 +1375,7 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 
 /* ===================== カメラ・描画 ===================== */
 /* カメラは台のまわりを回る（yaw＝回りこむ角度、h＝目の高さのずれ） */
-const CAM = { R: 11.7, H: 2.85, tgtY: 1.85, yaw: 0, h: 0, tyaw: 0, th: 0 };
+const CAM = { R: 12.4, H: 3.0, tgtY: 1.5, yaw: 0, h: 0, tyaw: 0, th: 0 };
 const camPos = new THREE.Vector3(0, 4.7, 12), camTgt = new THREE.Vector3(0, 1.85, 0.25), vT = new THREE.Vector3(), tT = new THREE.Vector3();
 const D2R = Math.PI / 180;
 function camLimits() {
