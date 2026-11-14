@@ -111,7 +111,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;touch-action
 </script>
 </head>
 <body>
-<!-- build: 2026-11-14e -->
+<!-- build: 2026-11-14f -->
 <canvas id="c"></canvas>
 
 <div id="hud">
@@ -176,7 +176,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
    調整値（ここの数字だけ直せば、速さ・むずかしさを変えられます）
    ===================================================================== */
 const CFG = {
-  version: 'v2026-11-14e',
+  version: 'v2026-11-14f',
   field: { W: 6.0, D: 4.6 },          // 台の中の広さ（横・奥）
   hole:  { w: 1.7, d: 1.7 },          // 落とし口（手前の左すみ）
   gravity: 14,
@@ -208,7 +208,7 @@ const CFG = {
       guide: 'ring', fence: 0, nudge: 1.6, orient: false, comStrict: false, easeTop: true, fingerHit: false,
       layout: 'spread',
       cam: { drag: false },                                  // 前・横の切りかえだけ
-      prizes: ['cube', 'chick', 'panda', 'rabbit', 'cat', 'car', 'pudding', 'egg'],
+      prizes: ['cube', 'chick', 'panda', 'rabbit', 'cat', 'car', 'pudding', 'egg', 'bear', 'penguin', 'donut'],
     },
     normal: {
       name: 'ふつう', control: 'dpad', fingers: 3, plays: 10, timeLimit: 30,
@@ -217,7 +217,7 @@ const CFG = {
       guide: 'shadow', fence: 0.10, nudge: 1.2, orient: false, comStrict: false, easeTop: true, fingerHit: true,
       layout: 'mixed',
       cam: { drag: true, yaw: [-95, 95], lift: false },      // 画面をなぞって横に回りこめる（角度は度）
-      prizes: ['chick', 'panda', 'cat', 'dog', 'ball', 'rabbit', 'egg', 'cube', 'car', 'pudding'],
+      prizes: ['chick', 'panda', 'cat', 'dog', 'ball', 'rabbit', 'egg', 'cube', 'car', 'pudding', 'bear', 'penguin', 'donut'],
     },
     hard: {
       name: 'ホンモノ', control: 'two', fingers: 2, plays: 6, timeLimit: 0,
@@ -227,7 +227,7 @@ const CFG = {
       guide: 'none', fence: 0.22, nudge: 0.9, orient: true, comStrict: true, easeTop: false, fingerHit: true,
       layout: 'pile',
       cam: { drag: true, yaw: [-90, 90], lift: true, h: [-2.0, 1.3] },   // 回りこみ＋背のび・しゃがむ
-      prizes: ['chick', 'rabbit', 'cat', 'dog', 'ball', 'car', 'egg', 'gourd', 'pudding', 'worm', 'cube', 'rabbit'],
+      prizes: ['chick', 'rabbit', 'cat', 'dog', 'ball', 'car', 'egg', 'gourd', 'pudding', 'worm', 'cube', 'bear', 'penguin', 'donut'],
     },
   },
 };
@@ -254,11 +254,18 @@ const PALS = [
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-scene.add(new THREE.HemisphereLight(0xffffff, 0xfff0f5, 1.55));
-const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(3, 8, 6); scene.add(sun);
-const fill = new THREE.DirectionalLight(0xfff0f6, 0.5); fill.position.set(6, 3, -2); scene.add(fill);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xfff0f5, 1.0));
+/* 影は「真上のライト」だけがつくる（チート：台や屋根は影を落とさず、景品とアームだけが影を落とす）。
+   真上からなので、アームの影がそのまま おりる場所になる */
+const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(0, 12, 0); scene.add(sun);
+sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.camera.up.set(0, 0, -1);   // 真上からのライトなので、影のカメラの上方向を決めておく
+Object.assign(sun.shadow.camera, { left: -4.2, right: 4.2, top: 4.2, bottom: -4.2, near: 4, far: 14 });
+sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.03; sun.shadow.radius = 4;
+const front = new THREE.DirectionalLight(0xffffff, 0.6); front.position.set(2, 5, 8); scene.add(front);   // 正面からの明かり（影なし）
+const fill = new THREE.DirectionalLight(0xfff0f6, 0.4); fill.position.set(6, 3, -2); scene.add(fill);
 
 const mat = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.7, metalness: 0, ...o });
 const sph = (r, m, ws = 18, hs = 14) => new THREE.Mesh(new THREE.SphereGeometry(r, ws, hs), m);
@@ -488,6 +495,53 @@ function makePudding(pal) {
   addFace(g, 0.3, 0.22, 0.31);
   return g;
 }
+function makeBear(pal) {
+  const g = new THREE.Group(); const m = mat(pal.main, { roughness: 0.8 }), l = mat(pal.light, { roughness: 0.8 });
+  const dark = mat(0x3a3340, { roughness: 0.4 });
+  put(g, sph(0.3, m, 24, 18), [0, 0.3, 0], null, [1, 0.95, 0.9]);
+  put(g, sph(0.2, l, 18, 14), [0, 0.28, 0.14], null, [1, 1.05, 0.7]);           // おなか
+  for (const sx of [-1, 1]) {
+    put(g, sph(0.11, m, 14, 10), [sx * 0.16, 0.09, 0.2], null, [1, 0.8, 1.25]);  // 足
+    put(g, sph(0.08, l, 10, 8), [sx * 0.16, 0.09, 0.32], null, [1, 1, 0.4]);     // 足のうら
+    put(g, sph(0.09, m, 12, 10), [sx * 0.28, 0.36, 0.08], null, [0.9, 1.3, 0.9]); // うで
+  }
+  const h = new THREE.Group(); h.position.set(0, 0.7, 0.03); g.add(h);
+  h.add(sph(0.25, m, 22, 16));
+  for (const sx of [-1, 1]) { put(h, sph(0.09, m, 12, 10), [sx * 0.18, 0.19, -0.02], null, [1, 1, 0.6]); put(h, sph(0.05, l, 10, 8), [sx * 0.18, 0.19, 0.02], null, [1, 1, 0.4]); }
+  put(h, sph(0.1, l, 14, 10), [0, -0.07, 0.2], null, [1.15, 0.85, 0.8]);       // 口のまわり
+  put(h, sph(0.035, dark, 10, 8), [0, -0.03, 0.29], null, [1.3, 1, 1]);        // はな
+  addFace(h, 0.25, 0.03);
+  return g;
+}
+function makePenguin(pal) {
+  const g = new THREE.Group(); const d = mat(pal.deep, { roughness: 0.6 }), w = mat(0xffffff, { roughness: 0.7 });
+  const o = mat(0xffb259, { roughness: 0.6 });
+  put(g, sph(0.3, d, 26, 20), [0, 0.43, 0], null, [1, 1.45, 0.95]);
+  put(g, sph(0.24, w, 22, 16), [0, 0.4, 0.12], null, [1, 1.35, 0.72]);          // おなか
+  for (const sx of [-1, 1]) {
+    put(g, sph(0.2, d, 14, 10), [sx * 0.29, 0.42, 0], [0, 0, sx * 0.3], [0.25, 0.75, 0.5]);   // つばさ
+    put(g, sph(0.08, o, 10, 8), [sx * 0.11, 0.03, 0.17], null, [1, 0.4, 1.4]);    // 足
+  }
+  put(g, new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.12, 10), o), [0, 0.6, 0.31], [Math.PI / 2, 0, 0]);   // くちばし
+  addFace(g, 0.26, 0.66);
+  return g;
+}
+function makeDonut(pal) {
+  const g = new THREE.Group();
+  const dough = new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.13, 16, 36), mat(0xf2c48d, { roughness: 0.7 }));
+  put(g, dough, [0, 0.13, 0], [-Math.PI / 2, 0, 0]);
+  const icing = new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.135, 16, 36), mat(pal.main, { roughness: 0.4 }));
+  put(g, icing, [0, 0.165, 0], [-Math.PI / 2, 0, 0], [1, 1, 0.62]);
+  const cols = [0xffffff, 0xfff0a8, 0xa9d8ff, 0xb0ecd3, 0xffb3c7];
+  for (let i = 0; i < 18; i++) {
+    const a = i / 18 * Math.PI * 2 + 0.2, r = 0.27 + ((i * 7) % 5 - 2) * 0.03;
+    if (Math.abs(a - Math.PI / 2) < 0.45) continue;            // 顔のところはあける
+    put(g, box(0.05, 0.016, 0.016, mat(cols[i % 5])), [Math.cos(a) * r, 0.25, Math.sin(a) * r], [0, a * 3, 0]);
+  }
+  const f = new THREE.Group(); f.position.set(0, 0.245, 0.27); f.rotation.x = -Math.PI / 2; g.add(f);   // 上を向いた顔
+  addFace(f, 0.2, 0, 0.01);
+  return g;
+}
 function makeCube(pal) {
   const g = new THREE.Group(); const m = mat(pal.main, { roughness: 0.55 }), d = mat(pal.deep, { roughness: 0.6 });
   put(g, new THREE.Mesh(new RoundedBoxGeometry(0.68, 0.68, 0.68, 4, 0.09), m), [0, 0.34, 0]);
@@ -528,6 +582,12 @@ const DEFS = {
     shapes: [['b', [0.31, 0.24, 0.4], [0, 0.24, 0]], ['b', [0.25, 0.15, 0.22], [0, 0.57, -0.05]]] },
   pudding: { name: 'プリン', build: makePudding, origin: [0, 0.24, 0], center: [0, 0.3, 0], mass: 0.7, gripMul: 1.25, holdMul: 1.25, gripR: 0.31, tint: 'light',
     shapes: [['c', [0.26, 0.36, 0.48], [0, 0.24, 0]], ['s', 0.12, [0, 0.54, 0]]] },
+  bear: { name: 'くま', build: makeBear, origin: [0, 0.42, 0], center: [0, 0.5, 0.02], mass: 0.8, gripMul: 1.2, holdMul: 1.15, gripR: 0.3, tint: 'main',
+    shapes: [['s', 0.29, [0, 0.3, 0]], ['s', 0.25, [0, 0.7, 0.03]]] },
+  penguin: { name: 'ペンギン', build: makePenguin, origin: [0, 0.38, 0], center: [0, 0.45, 0.02], mass: 0.8, gripMul: 1.25, holdMul: 1.3, gripR: 0.29, tint: 'deep',
+    shapes: [['s', 0.29, [0, 0.29, 0]], ['s', 0.25, [0, 0.6, 0.02]]] },
+  donut: { name: 'ドーナツ', build: makeDonut, origin: [0, 0.13, 0], center: [0, 0.14, 0], mass: 0.6, gripMul: 1.2, holdMul: 1.2, gripR: 0.38, tint: 'main',
+    shapes: Array.from({ length: 8 }, (_, i) => ['s', 0.13, [Math.cos(i * Math.PI / 4) * 0.27, 0.13, Math.sin(i * Math.PI / 4) * 0.27]]) },
 };
 
 /* ===================== 物理 ===================== */
@@ -570,9 +630,9 @@ const marquee = { tex: null };
     t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, rz); return t;
   };
   const fa = new THREE.Mesh(new THREE.PlaneGeometry(W / 2 - HX1, D), new THREE.MeshStandardMaterial({ map: floorTex((W / 2 - HX1) / 1.2, D / 1.2), roughness: 0.8 }));
-  fa.rotation.x = -Math.PI / 2; fa.position.set((HX1 + W / 2) / 2, 0, 0); cab.add(fa);
+  fa.receiveShadow = true; fa.rotation.x = -Math.PI / 2; fa.position.set((HX1 + W / 2) / 2, 0, 0); cab.add(fa);
   const fb = new THREE.Mesh(new THREE.PlaneGeometry(CFG.hole.w, HZ1 + D / 2), new THREE.MeshStandardMaterial({ map: floorTex(CFG.hole.w / 1.2, (HZ1 + D / 2) / 1.2), roughness: 0.8 }));
-  fb.rotation.x = -Math.PI / 2; fb.position.set((-W / 2 + HX1) / 2, 0, (-D / 2 + HZ1) / 2); cab.add(fb);
+  fb.receiveShadow = true; fb.rotation.x = -Math.PI / 2; fb.position.set((-W / 2 + HX1) / 2, 0, (-D / 2 + HZ1) / 2); cab.add(fb);
   // 穴
   // 穴の中：上は明るく、下にいくほど少しこい色（真っ黒にはしない）
   const shaftTex = canvasTex(64, 256, (c, w, h) => {
@@ -689,6 +749,9 @@ function buildClaw(n) {
     const b = new CANNON.Body({ type: CANNON.Body.KINEMATIC, collisionFilterGroup: GRP.CLAW, collisionFilterMask: 0, material: clawMat });
     b.addShape(new CANNON.Sphere(CFG.claw.tipR)); b.isClaw = true; world.addBody(b); claw.bodies.push(b);
   }
+  // アームの影：ふつうは目印として影を出す。やさしい（光の目印がある）とホンモノ（目印なし）は出さない
+  const cs = !!(G.M && G.M.guide === 'shadow');
+  clawVis.traverse(o => { if (o.isMesh) o.castShadow = cs; }); rope.castShadow = cs;
 }
 const tipRadius = (a) => 0.12 + FT[0] * Math.cos(a) - FT[1] * Math.sin(a);
 const tipDrop = (a) => 0.08 - FT[1] * Math.cos(a) - FT[0] * Math.sin(a);
@@ -746,8 +809,8 @@ function makePrize(key, pal) {
       : new CANNON.Box(new CANNON.Vec3(a[0] * s, a[1] * s, a[2] * s)), off);
   }
   body.isPrize = true; world.addBody(body);
-  const sh = new THREE.Mesh(shadowGeo, new THREE.MeshBasicMaterial({ color: 0x3b3350, transparent: true, opacity: 0.16, depthWrite: false }));
-  sh.rotation.x = -Math.PI / 2; sh.scale.setScalar(def.gripR * 1.35); scene.add(sh);
+  vis.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  const sh = new THREE.Object3D();
   const p = {
     key, def, name: def.name, body, holder, shadow: sh, won: false,
     color: usePal ? usePal[def.tint] : ({ chick: 0xf6c143, panda: 0x33333a, cat: 0x8c8f98, dog: 0x62b0e8 })[key],
@@ -872,14 +935,35 @@ function doGrab() {
     claw.hold = { p: best, q: bq, ox: tmpV.x - ax, oz: tmpV.z - az, drop: Math.max(0.45, Math.min(0.72, claw.y - tmpV.y)), startY: tmpV.y, lifted: false };
     best.body.angularDamping = 0.9;
     best.body.collisionFilterMask = GRP.STATIC | GRP.PRIZE;    // つかんだ景品にはツメが当たらないようにする
-    claw.angleT = angleFor(best.def.gripR);
+    claw.angleT = angleFor(gripRadius(best));        // 景品の形と向きに合わせて、ツメが表面で止まるようにする
     sfx('grab');
   } else { claw.angleT = CFG.claw.closeA; sfx('miss'); }
+}
+/* つかむ景品の、ツメの方向へのはみ出し（いちばん外側まで）の長さ。ツメはそこで止める */
+const _v = new CANNON.Vec3(), _w = new CANNON.Vec3(), _q = new CANNON.Quaternion();
+function gripRadius(p) {
+  const b = p.body, ax = clawPX(), az = clawPZ(); let best = 0;
+  const push = (x, y, z, r) => {
+    if (y > claw.y + 0.1) return;
+    for (const [dx, dz] of claw.fingerDirs) best = Math.max(best, (x - ax) * dx + (z - az) * dz + r);
+  };
+  b.shapes.forEach((sh, i) => {
+    b.quaternion.mult(b.shapeOrientations[i], _q);
+    b.quaternion.vmult(b.shapeOffsets[i], _v); _v.vadd(b.position, _v);
+    if (sh.type === CANNON.Shape.types.SPHERE) push(_v.x, _v.y, _v.z, sh.radius);
+    else if (sh.type === CANNON.Shape.types.BOX) {
+      const e = sh.halfExtents;
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
+        _q.vmult(_w.set(e.x * sx, e.y * sy, e.z * sz), _w); push(_v.x + _w.x, _v.y + _w.y, _v.z + _w.z, -0.04);   // 角は少し丸める
+      }
+    } else if (sh.vertices) for (const vt of sh.vertices) { _q.vmult(vt, _w); push(_v.x + _w.x, _v.y + _w.y, _v.z + _w.z, 0); }
+  });
+  return Math.min(0.6, Math.max(0.12, best + 0.04));
 }
 function releaseHold(slip) {
   const h = claw.hold; if (!h) return;
   h.p.body.angularDamping = CFG.prizeAngDamp; claw.hold = null;
-  h.p.body.collisionFilterMask = GRP.STATIC | GRP.PRIZE | GRP.CLAW;
+  h.p.clawFree = 0.6;          // しばらくツメと当たらない。重なりがなくなってから当たるようにもどす（step内）
   if (slip) { h.p.body.velocity.x *= 0.5; h.p.body.velocity.z *= 0.5; }   // すべったときは、ほぼ真下に落ちる
   if (slip) { if (h.lifted) toast('おしい！', 'sub'); sfx('slip'); claw.angleT = CFG.claw.closeA; }
 }
@@ -990,6 +1074,10 @@ function step(dt) {
   } else if (G.phase === 'open') {
     G.pt += dt; claw.angleT = C.openA;
     if (G.pt > 0.15 && claw.hold) { releaseHold(false); sfx('open'); }
+    if (G.pt > 0.15) for (const c of world.contacts) {    // ツメにひっかかったままの景品も落とす（ひっかけて運べたら、それもゲット）
+      const pb = c.bi.isClaw ? c.bj : c.bj.isClaw ? c.bi : null;
+      if (pb && pb.prize && pb.position.y > 0.8) { pb.collisionFilterMask = GRP.STATIC | GRP.PRIZE; pb.prize.clawFree = 0.6; }
+    }
     let falling = false; for (const p of G.prizes) if (!p.won && p.body.position.y < p.rest - 0.3) falling = true;
     if (G.pt > 1.4 && !falling || G.pt > 4) nextPlay();
   } else if (G.phase === 'over') {
@@ -1006,13 +1094,21 @@ function step(dt) {
   // --- ゲット判定・場外の救済 ---
   for (const p of G.prizes) {
     if (p.won) continue; const pos = p.body.position;
+    if (p.clawFree > 0) {
+      p.clawFree -= dt;
+      if (p.clawFree <= 0) {
+        const rr = p.body.boundingRadius + CFG.claw.tipR + 0.02;
+        const near = [hubBody, ...claw.bodies].some(cb => cb.position.distanceTo(pos) < rr);
+        if (near) p.clawFree = 0.1; else p.body.collisionFilterMask = GRP.STATIC | GRP.PRIZE | GRP.CLAW;
+      }
+    }
     if (pos.y < -1.2) winPrize(p);
+    else if (!(Math.abs(pos.x) < W / 2 + 0.6 && Math.abs(pos.z) < D / 2 + 0.6 && pos.y < 8)) {
+      pos.set(0.6, 1.2, -0.4); p.body.velocity.set(0, 0, 0); p.body.angularVelocity.set(0, 0, 0);
+    }
     else if (!inHoleXZ(pos, -0.1) && !(claw.hold && claw.hold.p === p)) {
       p.body.updateAABB();
       if (p.body.aabb.lowerBound.y < -0.06) { pos.y += 0.03; if (p.body.velocity.y < 0.5) p.body.velocity.y = 0.5; }
-    }
-    else if (!(Math.abs(pos.x) < W / 2 + 0.6 && Math.abs(pos.z) < D / 2 + 0.6 && pos.y < 8)) {
-      pos.set(0.6, 1.2, -0.4); p.body.velocity.set(0, 0, 0); p.body.angularVelocity.set(0, 0, 0);
     }
   }
 }
@@ -1327,7 +1423,7 @@ function animate(dt) {
   rope.quaternion.setFromUnitVectors(UP, bot.clone().sub(top).normalize());
   // 目印
   const guide = M ? M.guide : 'none', aiming = M && (G.phase === 'ready' || G.phase === 'descend');
-  ring.visible = aimLine.visible = guide === 'ring' && aiming; blob.visible = guide === 'shadow' && aiming;
+  ring.visible = aimLine.visible = guide === 'ring' && aiming; blob.visible = false;
   if (ring.visible) {
     const s = 1 + Math.sin(G.t * 2.4) * 0.06; ring.scale.set(s, s, 1);
     ring.material.opacity = 0.3 + Math.sin(G.t * 2.4) * 0.06;
@@ -1340,9 +1436,6 @@ function animate(dt) {
   for (const p of G.prizes) {
     if (p.won) continue;
     p.holder.position.copy(p.body.position); p.holder.quaternion.copy(p.body.quaternion);
-    p.shadow.position.set(p.body.position.x, 0.006, p.body.position.z);
-    p.shadow.visible = p.body.position.y > 0 && !inHoleXZ(p.body.position);
-    p.shadow.material.opacity = 0.18 * Math.max(0.2, 1 - p.body.position.y / 3);
   }
   // 画面表示
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').className = ''; }
