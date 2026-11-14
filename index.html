@@ -99,6 +99,18 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;touch-action
   .tbtn{width:92px;height:92px}#dpad{grid-template-columns:repeat(3,54px);grid-template-rows:repeat(3,54px)}
   #toast{font-size:44px}
 }
+/* ==== スマホ横向き（高さ500px以下）だけに効く調整。iPadには影響しない ==== */
+@media (orientation:landscape) and (max-height:500px){
+  .ov{padding:8px}
+  .card{padding:10px 16px 0;border-width:3px}
+  .card h1{font-size:26px}.card h2{font-size:20px;margin-bottom:6px}.lead{font-size:15px;margin-bottom:8px}
+  .mbtn{min-height:96px;padding:8px}
+  .steps{grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+  .step{font-size:14px;line-height:1.6;padding:4px 10px;gap:8px}
+  .step svg{flex-basis:44px;width:44px;height:44px}
+  #bStart{position:sticky;bottom:6px;min-height:52px;font-size:20px}
+  #resNum{font-size:44px}
+}
 </style>
 <script type="importmap">
 {
